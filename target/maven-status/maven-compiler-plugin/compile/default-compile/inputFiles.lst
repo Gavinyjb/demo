@@ -1,6 +1,4 @@
-/Users/bobo/Documents/coding/demo/src/main/java/com/example/service/impl/ConfigServiceImpl.java
 /Users/bobo/Documents/coding/demo/src/main/java/com/example/util/RegionProvider.java
-/Users/bobo/Documents/coding/demo/src/main/java/com/example/controller/ConfigController.java
 /Users/bobo/Documents/coding/demo/src/main/java/com/example/service/impl/DataSourceConfigServiceImpl.java
 /Users/bobo/Documents/coding/demo/src/main/java/com/example/enums/ConfigStatus.java
 /Users/bobo/Documents/coding/demo/src/main/java/com/example/service/ApiRecordConfigService.java
@@ -17,7 +15,6 @@
 /Users/bobo/Documents/coding/demo/src/main/java/com/example/dto/PublishStageRequest.java
 /Users/bobo/Documents/coding/demo/src/main/java/com/example/controller/DataSourceConfigController.java
 /Users/bobo/Documents/coding/demo/src/main/java/com/example/service/DataSourceConfigService.java
-/Users/bobo/Documents/coding/demo/src/main/java/com/example/service/ConfigService.java
 /Users/bobo/Documents/coding/demo/src/main/java/com/example/controller/PublishController.java
 /Users/bobo/Documents/coding/demo/src/main/java/com/example/model/ConfigIdentifier.java
 /Users/bobo/Documents/coding/demo/src/main/java/com/example/model/PublishHistory.java

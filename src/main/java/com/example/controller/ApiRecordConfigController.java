@@ -32,7 +32,7 @@ public class ApiRecordConfigController {
         return ResponseEntity.ok(apiRecordConfigService.update(versionId, config));
     }
 
-    @GetMapping("/published")
+    @GetMapping("/published/all")
     @Operation(summary = "获取所有已发布的API记录配置")
     public ResponseEntity<List<ApiRecordConfig>> getAllPublished() {
         return ResponseEntity.ok(apiRecordConfigService.getAllPublished());

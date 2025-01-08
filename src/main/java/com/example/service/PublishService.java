@@ -1,6 +1,7 @@
 package com.example.service;
 
 import com.example.enums.GrayStage;
+import com.example.model.PublishHistory;
 import java.util.List;
 
 /**
@@ -21,9 +22,24 @@ public interface PublishService {
      * 回滚配置
      */
     void rollback(String currentVersionId, String targetVersionId, List<String> grayGroups, String operator);
+
+    /**
+     * 回滚到上一个版本
+     */
+    void rollbackToPrevious(String identifier, String configType, String operator);
+
+    /**
+     * 回滚到指定版本
+     */
+    void rollbackToVersion(String identifier, String targetVersionId, String configType, String operator);
     
     /**
      * 废弃配置
      */
     void deprecate(String versionId, List<String> grayGroups, String operator);
+
+    /**
+     * 获取发布历史
+     */
+    List<PublishHistory> getHistory(String versionId);
 } 
