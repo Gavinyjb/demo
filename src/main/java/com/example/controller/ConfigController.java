@@ -4,6 +4,7 @@ import com.example.model.DataSourceConfig;
 import com.example.model.ApiRecordConfig;
 import com.example.model.PublishHistory;
 import com.example.service.ConfigService;
+import com.example.service.DataSourceConfigService;
 import com.example.util.RegionProvider;
 import com.example.enums.GrayStage;
 import com.example.dto.PublishStageRequest;
@@ -13,6 +14,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import javax.xml.crypto.Data;
 import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
@@ -23,6 +25,9 @@ import java.util.HashMap;
 public class ConfigController {
     @Autowired
     private ConfigService configService;
+
+    @Autowired
+    private DataSourceConfigService dataSourceConfigService;
 
     @Autowired
     private RegionProvider regionProvider;
@@ -148,5 +153,14 @@ public class ConfigController {
     public ResponseEntity<List<DataSourceConfig>> getPublishedDataSourceConfigs(
             @PathVariable String source) {
         return ResponseEntity.ok(configService.getPublishedDataSourceConfigs(source));
+    }
+
+    @GetMapping("/datasource/{source}/region/{region}")
+    @Operation(summary = "获取指定source在指定地域的生效配置")
+    public ResponseEntity<DataSourceConfig> getDataSourceBySourceAndRegion(
+            @PathVariable String source,
+            @PathVariable String region) {
+        return ResponseEntity.ok(
+            dataSourceConfigService.getActiveBySourceAndRegion(source, region));
     }
 } 

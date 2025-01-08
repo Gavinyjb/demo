@@ -23,6 +23,23 @@ public interface ApiRecordConfigService {
     List<ApiRecordConfig> getAllPublished();
     
     /**
+     * 获取指定地域生效的配置
+     */
+    List<ApiRecordConfig> getActiveByRegion(String region);
+    
+    /**
+     * 获取指定API在指定地域生效的配置
+     */
+    ApiRecordConfig getActiveByIdentifierAndRegion(String gatewayType, String gatewayCode, 
+                                                 String apiVersion, String apiName, String region);
+    
+    /**
+     * 获取指定API的所有已发布配置
+     */
+    List<ApiRecordConfig> getPublishedByIdentifier(String gatewayType, String gatewayCode, 
+                                                  String apiVersion, String apiName);
+    
+    /**
      * 更新配置状态
      */
     void updateStatus(String versionId, String status, String grayGroups);
