@@ -55,4 +55,18 @@ public interface DataSourceConfigMapper {
             "AND status = 'PUBLISHED' " +
             "ORDER BY gmt_modified DESC")
     List<DataSourceConfig> findPublishedConfigsBySource(String source);
+
+    /**
+     * 获取指定source的所有配置版本（包括所有状态）
+     */
+    @Select("SELECT * FROM data_source_config " +
+            "WHERE source = #{source} " +
+            "ORDER BY gmt_modified DESC")
+    List<DataSourceConfig> findAllVersionsBySource(String source);
+
+    /**
+     * 删除指定的配置版本
+     */
+    @Delete("DELETE FROM data_source_config WHERE version_id = #{versionId}")
+    void deleteByVersionId(String versionId);
 } 

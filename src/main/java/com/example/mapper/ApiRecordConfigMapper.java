@@ -70,4 +70,24 @@ public interface ApiRecordConfigMapper {
             "WHERE status = 'PUBLISHED' " +
             "AND effective_gray_groups LIKE CONCAT('%', #{region}, '%')")
     List<ApiRecordConfig> findByRegion(@Param("region") String region);
+
+    /**
+     * 获取指定API的所有配置版本（包括所有状态）
+     */
+    @Select("SELECT * FROM api_record_config " +
+            "WHERE gateway_type = #{gatewayType} " +
+            "AND gateway_code = #{gatewayCode} " +
+            "AND api_version = #{apiVersion} " +
+            "AND api_name = #{apiName} " +
+            "ORDER BY gmt_modified DESC")
+    List<ApiRecordConfig> findAllVersionsByIdentifier(@Param("gatewayType") String gatewayType,
+                                                    @Param("gatewayCode") String gatewayCode,
+                                                    @Param("apiVersion") String apiVersion,
+                                                    @Param("apiName") String apiName);
+
+    /**
+     * 删除指定的配置版本
+     */
+    @Delete("DELETE FROM api_record_config WHERE version_id = #{versionId}")
+    void deleteByVersionId(String versionId);
 } 

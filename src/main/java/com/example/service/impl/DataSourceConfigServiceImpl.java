@@ -6,6 +6,7 @@ import com.example.model.DataSourceConfig;
 import com.example.service.DataSourceConfigService;
 import com.example.util.RegionProvider;
 import com.example.util.VersionGenerator;
+import com.example.config.VersionProperties;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,6 +24,9 @@ public class DataSourceConfigServiceImpl implements DataSourceConfigService {
     
     @Autowired
     private RegionProvider regionProvider;
+    
+    @Autowired
+    private VersionProperties versionProperties;
 
     @Override
     @Transactional
@@ -37,6 +41,10 @@ public class DataSourceConfigServiceImpl implements DataSourceConfigService {
         config.setVersionId(versionGenerator.generateDataSourceVersion());
         config.setStatus(ConfigStatus.DRAFT.name());
         dataSourceConfigMapper.insert(config);
+        
+        // 清理过期版本
+        cleanupOldVersions(config.getSource());
+        
         return config;
     }
 
@@ -51,6 +59,10 @@ public class DataSourceConfigServiceImpl implements DataSourceConfigService {
         newConfig.setVersionId(versionGenerator.generateDataSourceVersion());
         newConfig.setStatus(ConfigStatus.DRAFT.name());
         dataSourceConfigMapper.insert(newConfig);
+        
+        // 清理过期版本
+        cleanupOldVersions(newConfig.getSource());
+        
         return newConfig;
     }
 
@@ -84,5 +96,19 @@ public class DataSourceConfigServiceImpl implements DataSourceConfigService {
     @Transactional
     public void updateStatus(String versionId, String status, String grayGroups) {
         dataSourceConfigMapper.updateStatus(versionId, status, grayGroups);
+    }
+
+    /**
+     * 清理过期版本
+     * 保留最新的N个版本，其他的删除
+     */
+    private void cleanupOldVersions(String source) {
+        List<DataSourceConfig> allVersions = dataSourceConfigMapper.findAllVersionsBySource(source);
+        if (allVersions.size() > versionProperties.getMaxDatasourceVersions()) {
+            // 跳过最新的N个版本，删除剩余的版本
+            allVersions.stream()
+                .skip(versionProperties.getMaxDatasourceVersions())
+                .forEach(config -> dataSourceConfigMapper.deleteByVersionId(config.getVersionId()));
+        }
     }
 } 

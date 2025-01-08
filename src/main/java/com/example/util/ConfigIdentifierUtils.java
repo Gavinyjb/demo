@@ -2,6 +2,7 @@ package com.example.util;
 
 import com.example.model.ConfigIdentifier;
 import java.util.List;
+import java.util.Collections;
 import java.util.stream.Collectors;
 
 /**
@@ -14,7 +15,7 @@ public class ConfigIdentifierUtils {
      */
     public static <T extends ConfigIdentifier> List<T> findSameIdentifier(List<T> configs, T target) {
         if (configs == null || target == null) {
-            return List.of();
+            return Collections.emptyList();
         }
         return configs.stream()
             .filter(config -> config.getIdentifier().equals(target.getIdentifier()))

@@ -22,3 +22,10 @@ springdoc:
     path: /api-docs
   swagger-ui:
     path: /swagger-ui.html 
+
+config:
+  version:
+    # 每个数据源配置保留的最大版本数
+    max-datasource-versions: 5
+    # 每个API配置保留的最大版本数
+    max-apirecord-versions: 5 
