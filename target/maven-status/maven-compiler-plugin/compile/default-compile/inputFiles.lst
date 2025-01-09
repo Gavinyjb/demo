@@ -1,6 +1,8 @@
 /Users/bobo/Documents/coding/demo/src/main/java/com/example/util/RegionProvider.java
 /Users/bobo/Documents/coding/demo/src/main/java/com/example/service/impl/DataSourceConfigServiceImpl.java
 /Users/bobo/Documents/coding/demo/src/main/java/com/example/enums/ConfigStatus.java
+/Users/bobo/Documents/coding/demo/src/main/java/com/example/service/impl/ApiMetaConfigServiceImpl.java
+/Users/bobo/Documents/coding/demo/src/main/java/com/example/service/ApiMetaConfigService.java
 /Users/bobo/Documents/coding/demo/src/main/java/com/example/service/ApiRecordConfigService.java
 /Users/bobo/Documents/coding/demo/src/main/java/com/example/service/PublishService.java
 /Users/bobo/Documents/coding/demo/src/main/java/com/example/util/VersionGenerator.java
@@ -9,12 +11,15 @@
 /Users/bobo/Documents/coding/demo/src/main/java/com/example/model/ApiRecordConfig.java
 /Users/bobo/Documents/coding/demo/src/main/java/com/example/service/impl/PublishServiceImpl.java
 /Users/bobo/Documents/coding/demo/src/main/java/com/example/config/VersionProperties.java
+/Users/bobo/Documents/coding/demo/src/main/java/com/example/service/BaseConfigService.java
 /Users/bobo/Documents/coding/demo/src/main/java/com/example/util/ConfigIdentifierUtils.java
 /Users/bobo/Documents/coding/demo/src/main/java/com/example/mapper/DataSourceConfigMapper.java
 /Users/bobo/Documents/coding/demo/src/main/java/com/example/service/impl/ApiRecordConfigServiceImpl.java
 /Users/bobo/Documents/coding/demo/src/main/java/com/example/dto/PublishStageRequest.java
 /Users/bobo/Documents/coding/demo/src/main/java/com/example/controller/DataSourceConfigController.java
 /Users/bobo/Documents/coding/demo/src/main/java/com/example/service/DataSourceConfigService.java
+/Users/bobo/Documents/coding/demo/src/main/java/com/example/mapper/ApiMetaConfigMapper.java
+/Users/bobo/Documents/coding/demo/src/main/java/com/example/model/ApiMetaConfig.java
 /Users/bobo/Documents/coding/demo/src/main/java/com/example/controller/PublishController.java
 /Users/bobo/Documents/coding/demo/src/main/java/com/example/model/ConfigIdentifier.java
 /Users/bobo/Documents/coding/demo/src/main/java/com/example/model/PublishHistory.java

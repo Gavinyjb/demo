@@ -17,4 +17,9 @@ public class VersionProperties {
      * 每个API配置保留的最大版本数
      */
     private int maxApirecordVersions = 5;
+    
+    /**
+     * API Meta配置保留的最大版本数
+     */
+    private int maxApiMetaVersions = 5;
 } 

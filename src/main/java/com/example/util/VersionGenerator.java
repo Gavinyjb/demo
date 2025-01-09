@@ -7,20 +7,42 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 @Component
 public class VersionGenerator {
-    private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("yyyyMMdd");
-    private final AtomicInteger sequence = new AtomicInteger(1);
+    private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyyMMdd");
+    private final AtomicInteger dataSourceCounter = new AtomicInteger(1);
+    private final AtomicInteger apiRecordCounter = new AtomicInteger(1);
+    private final AtomicInteger apiMetaCounter = new AtomicInteger(1);
+    private String currentDate = LocalDateTime.now().format(DATE_FORMATTER);
 
+    /**
+     * 生成数据源配置版本号
+     * 格式：DS + 年月日 + 4位序号，如：DS202401150001
+     */
     public String generateDataSourceVersion() {
-        return generateVersion("DS");
+        return generateVersion("DS", dataSourceCounter);
     }
 
+    /**
+     * 生成API记录配置版本号
+     * 格式：AR + 年月日 + 4位序号，如：AR202401150001
+     */
     public String generateApiRecordVersion() {
-        return generateVersion("AR");
+        return generateVersion("AR", apiRecordCounter);
     }
 
-    private String generateVersion(String prefix) {
-        String date = LocalDateTime.now().format(DATE_FORMAT);
-        String seq = String.format("%04d", sequence.getAndIncrement());
-        return prefix + date + seq;
+    /**
+     * 生成API Meta配置版本号
+     * 格式：AM + 年月日 + 4位序号，如：AM202401150001
+     */
+    public String generateApiMetaVersion() {
+        return generateVersion("AM", apiMetaCounter);
+    }
+
+    private String generateVersion(String prefix, AtomicInteger counter) {
+        String today = LocalDateTime.now().format(DATE_FORMATTER);
+        if (!today.equals(currentDate)) {
+            currentDate = today;
+            counter.set(1);
+        }
+        return String.format("%s%s%04d", prefix, today, counter.getAndIncrement());
     }
 } 

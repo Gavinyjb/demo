@@ -57,4 +57,32 @@ CREATE TABLE IF NOT EXISTS publish_history (
     gmt_create DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     gmt_modified DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '修改时间',
     KEY idx_version (version_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='发布历史表'; 
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='发布历史表';
+
+-- 创建API Meta配置表
+CREATE TABLE IF NOT EXISTS api_meta_config (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '主键ID',
+    version_id VARCHAR(64) NOT NULL COMMENT '版本ID，格式：AM202501080001',
+    api_name VARCHAR(256) NOT NULL COMMENT 'API名称',
+    product VARCHAR(256) COMMENT '产品名称',
+    gateway_type VARCHAR(128) COMMENT '网关类型',
+    dm VARCHAR(256) COMMENT 'DM标识',
+    gateway_code VARCHAR(256) COMMENT '网关编码',
+    api_version VARCHAR(64) COMMENT 'API版本',
+    actiontrail_code VARCHAR(256) COMMENT 'ActionTrail编码',
+    operation_type VARCHAR(64) COMMENT '操作类型',
+    description VARCHAR(3072) COMMENT 'API描述',
+    visibility VARCHAR(64) COMMENT '可见性',
+    isolation_type VARCHAR(64) COMMENT '隔离类型',
+    service_type VARCHAR(64) COMMENT '服务类型',
+    response_body_log TINYINT COMMENT '是否记录响应体',
+    invoke_type VARCHAR(64) COMMENT '调用类型',
+    resource_spec VARCHAR(7168) COMMENT '资源规格',
+    status VARCHAR(32) NOT NULL COMMENT '状态: DRAFT/PUBLISHED/DEPRECATED',
+    effective_gray_groups TEXT COMMENT '生效的灰度组，JSON数组格式',
+    effective_flag VARCHAR(64) COMMENT '生效标识',
+    audit_status VARCHAR(64) COMMENT '审核状态',
+    gmt_create DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    gmt_modified DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '修改时间',
+    UNIQUE KEY uk_version (version_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='API Meta配置表'; 

@@ -2,9 +2,12 @@ com/example/controller/ApiRecordConfigController.class
 com/example/model/DataSourceConfig.class
 com/example/service/impl/DataSourceConfigServiceImpl.class
 com/example/dto/PublishStageRequest.class
+com/example/model/ApiMetaConfig.class
 com/example/service/ApiRecordConfigService.class
 com/example/service/PublishService.class
+com/example/service/impl/ApiMetaConfigServiceImpl.class
 com/example/enums/ConfigStatus.class
+com/example/service/BaseConfigService.class
 com/example/Application.class
 com/example/util/RegionProvider.class
 com/example/service/impl/ApiRecordConfigServiceImpl.class
@@ -22,4 +25,6 @@ com/example/mapper/ApiRecordConfigMapper.class
 com/example/controller/DataSourceConfigController.class
 com/example/config/VersionProperties.class
 com/example/service/DataSourceConfigService.class
+com/example/service/ApiMetaConfigService.class
 com/example/model/PublishHistory.class
+com/example/mapper/ApiMetaConfigMapper.class

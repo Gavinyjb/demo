@@ -3,13 +3,16 @@ server:
 
 spring:
   datasource:
-    url: jdbc:mysql://192.168.1.88:38049/config_management?useSSL=false&serverTimezone=UTC&createDatabaseIfNotExist=true
+    url: jdbc:mysql://127.0.0.1:3306/config_management?useSSL=false&serverTimezone=UTC&createDatabaseIfNotExist=true
     username: root
     password: password
     driver-class-name: com.mysql.cj.jdbc.Driver
-    initialization-mode: always
-    schema: classpath:db/schema.sql
-    data: classpath:db/data.sql
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:db/schema.sql
+      continue-on-error: true
+      encoding: UTF-8
 
 mybatis:
   mapper-locations: classpath:mapper/*.xml
@@ -25,7 +28,6 @@ springdoc:
 
 config:
   version:
-    # 每个数据源配置保留的最大版本数
     max-datasource-versions: 5
-    # 每个API配置保留的最大版本数
-    max-apirecord-versions: 5 
+    max-apirecord-versions: 5
+    max-api-meta-versions: 5 

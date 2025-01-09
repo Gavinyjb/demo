@@ -1,45 +1,166 @@
 package com.example.service;
 
+import com.example.enums.ConfigStatus;
+import com.example.enums.ConfigType;
 import com.example.enums.GrayStage;
+import com.example.mapper.PublishHistoryMapper;
+import com.example.model.ApiRecordConfig;
+import com.example.model.DataSourceConfig;
 import com.example.model.PublishHistory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import java.util.List;
+import java.util.Collections;
 
 /**
- * 配置发布服务接口
+ * 配置发布服务
  */
-public interface PublishService {
+@Service
+public class PublishService {
+    
+    @Autowired
+    private DataSourceConfigService dataSourceConfigService;
+    
+    @Autowired
+    private ApiRecordConfigService apiRecordConfigService;
+    
+    @Autowired
+    private PublishHistoryMapper publishHistoryMapper;
+
     /**
      * 发布配置
      */
-    void publish(String versionId, String configType, List<String> grayGroups, String operator);
-    
+    @Transactional
+    public void publish(String versionId, String configType, List<String> grayGroups, String operator) {
+        String grayGroupsJson = String.join(",", grayGroups);
+        
+        if (ConfigType.DATA_SOURCE.name().equals(configType)) {
+            dataSourceConfigService.updateStatus(versionId, ConfigStatus.PUBLISHED.name(), grayGroupsJson);
+        } else if (ConfigType.API_RECORD.name().equals(configType)) {
+            apiRecordConfigService.updateStatus(versionId, ConfigStatus.PUBLISHED.name(), grayGroupsJson);
+        }
+        
+        recordHistory(versionId, configType, ConfigStatus.PUBLISHED.name(), grayGroupsJson, operator);
+    }
+
     /**
      * 按阶段发布配置
      */
-    void publishByStage(String versionId, String configType, GrayStage stage, String operator);
-    
+    @Transactional
+    public void publishByStage(String versionId, String configType, GrayStage stage, String operator) {
+        publish(versionId, configType, stage.getRegions(), operator);
+    }
+
     /**
-     * 回滚配置
+     * 废弃配置
      */
-    void rollback(String currentVersionId, String targetVersionId, List<String> grayGroups, String operator);
+    @Transactional
+    public void deprecate(String versionId, List<String> grayGroups, String operator) {
+        String grayGroupsJson = String.join(",", grayGroups);
+        
+        dataSourceConfigService.updateStatus(versionId, ConfigStatus.DEPRECATED.name(), grayGroupsJson);
+        apiRecordConfigService.updateStatus(versionId, ConfigStatus.DEPRECATED.name(), grayGroupsJson);
+        
+        recordHistory(versionId, ConfigType.DATA_SOURCE.name(), ConfigStatus.DEPRECATED.name(), grayGroupsJson, operator);
+        recordHistory(versionId, ConfigType.API_RECORD.name(), ConfigStatus.DEPRECATED.name(), grayGroupsJson, operator);
+    }
 
     /**
      * 回滚到上一个版本
      */
-    void rollbackToPrevious(String identifier, String configType, String operator);
+    @Transactional
+    public void rollbackToPrevious(String identifier, String configType, String operator) {
+        if (ConfigType.DATA_SOURCE.name().equals(configType)) {
+            List<DataSourceConfig> publishedConfigs = 
+                dataSourceConfigService.getPublishedByIdentifier(identifier);
+            
+            if (publishedConfigs.size() < 2) {
+                throw new RuntimeException("No previous version to rollback for source: " + identifier);
+            }
+            
+            DataSourceConfig currentConfig = publishedConfigs.get(0);
+            DataSourceConfig previousConfig = publishedConfigs.get(1);
+            
+            rollback(currentConfig.getVersionId(), previousConfig.getVersionId(), Collections.emptyList(), operator);
+        } else if (ConfigType.API_RECORD.name().equals(configType)) {
+            String[] parts = identifier.split(":");
+            if (parts.length != 4) {
+                throw new IllegalArgumentException("Invalid API identifier format");
+            }
+            
+            List<ApiRecordConfig> publishedConfigs = 
+                apiRecordConfigService.getPublishedByIdentifier(parts[0], parts[1], parts[2], parts[3]);
+            
+            if (publishedConfigs.size() < 2) {
+                throw new RuntimeException("No previous version to rollback for API: " + identifier);
+            }
+            
+            ApiRecordConfig currentConfig = publishedConfigs.get(0);
+            ApiRecordConfig previousConfig = publishedConfigs.get(1);
+            
+            rollback(currentConfig.getVersionId(), previousConfig.getVersionId(), Collections.emptyList(), operator);
+        }
+    }
 
     /**
      * 回滚到指定版本
      */
-    void rollbackToVersion(String identifier, String targetVersionId, String configType, String operator);
-    
+    @Transactional
+    public void rollbackToVersion(String identifier, String targetVersionId, String configType, String operator) {
+        if (ConfigType.DATA_SOURCE.name().equals(configType)) {
+            List<DataSourceConfig> publishedConfigs = 
+                dataSourceConfigService.getPublishedByIdentifier(identifier);
+            if (publishedConfigs.isEmpty()) {
+                throw new RuntimeException("No active version for source: " + identifier);
+            }
+            
+            rollback(publishedConfigs.get(0).getVersionId(), targetVersionId, Collections.emptyList(), operator);
+        } else if (ConfigType.API_RECORD.name().equals(configType)) {
+            String[] parts = identifier.split(":");
+            List<ApiRecordConfig> publishedConfigs = 
+                apiRecordConfigService.getPublishedByIdentifier(parts[0], parts[1], parts[2], parts[3]);
+            if (publishedConfigs.isEmpty()) {
+                throw new RuntimeException("No active version for API: " + identifier);
+            }
+            
+            rollback(publishedConfigs.get(0).getVersionId(), targetVersionId, Collections.emptyList(), operator);
+        }
+    }
+
     /**
-     * 废弃配置
+     * 回滚配置
      */
-    void deprecate(String versionId, List<String> grayGroups, String operator);
+    @Transactional
+    public void rollback(String currentVersionId, String targetVersionId, List<String> grayGroups, String operator) {
+        String grayGroupsJson = String.join(",", grayGroups);
+        
+        // 处理数据源配置回滚
+        dataSourceConfigService.updateStatus(currentVersionId, ConfigStatus.DEPRECATED.name(), "");
+        dataSourceConfigService.updateStatus(targetVersionId, ConfigStatus.PUBLISHED.name(), grayGroupsJson);
+        recordHistory(targetVersionId, ConfigType.DATA_SOURCE.name(), ConfigStatus.PUBLISHED.name(), grayGroupsJson, operator);
+        
+        // 处理API记录配置回滚
+        apiRecordConfigService.updateStatus(currentVersionId, ConfigStatus.DEPRECATED.name(), "");
+        apiRecordConfigService.updateStatus(targetVersionId, ConfigStatus.PUBLISHED.name(), grayGroupsJson);
+        recordHistory(targetVersionId, ConfigType.API_RECORD.name(), ConfigStatus.PUBLISHED.name(), grayGroupsJson, operator);
+    }
 
     /**
      * 获取发布历史
      */
-    List<PublishHistory> getHistory(String versionId);
+    public List<PublishHistory> getHistory(String versionId) {
+        return publishHistoryMapper.findByVersionId(versionId);
+    }
+
+    private void recordHistory(String versionId, String configType, String status, String grayGroups, String operator) {
+        PublishHistory history = new PublishHistory();
+        history.setVersionId(versionId);
+        history.setConfigType(configType);
+        history.setStatus(status);
+        history.setGrayGroups(grayGroups);
+        history.setOperator(operator);
+        publishHistoryMapper.insert(history);
+    }
 } 
