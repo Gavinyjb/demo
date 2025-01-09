@@ -1,0 +1,2268 @@
+openapi: "3.0.1"
+info:
+  title: "API Documentation"
+  version: "1.0"
+paths:
+  /api/publish:
+    post:
+      summary: "发布配置"
+      description: "发布配置"
+      parameters:
+      - name: "versionId"
+        in: "query"
+        description: ""
+        required: true
+        schema:
+          type: "string"
+          nullable: false
+      - name: "configType"
+        in: "query"
+        description: ""
+        required: true
+        schema:
+          type: "string"
+          nullable: false
+      - name: "operator"
+        in: "query"
+        description: ""
+        required: true
+        schema:
+          type: "string"
+          nullable: false
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: "array"
+              description: ""
+              items:
+                type: "string"
+      responses:
+        "200":
+          description: "No Content"
+  /api/publish/stage:
+    post:
+      summary: "按阶段发布配置"
+      description: "按阶段发布配置"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: "object"
+              properties:
+                versionId:
+                  type: "string"
+                  description: "配置版本号"
+                configType:
+                  type: "string"
+                  description: "配置类型"
+                stage:
+                  type: "string"
+                  description: "{STAGE_1=阶段1：仅在 ap-southeast-2 生效, STAGE_2=阶段2：在 cn-chengdu、\
+                    ap-southeast-2、cn-shanghai 生效, FULL=全量发布：所有地域生效}"
+                  enum:
+                  - "STAGE_1"
+                  - "STAGE_2"
+                  - "FULL"
+                operator:
+                  type: "string"
+                  description: "操作人"
+              description: ""
+      responses:
+        "200":
+          description: "No Content"
+  /api/publish/rollback:
+    post:
+      summary: "回滚配置"
+      description: "回滚配置"
+      parameters:
+      - name: "currentVersionId"
+        in: "query"
+        description: ""
+        required: true
+        schema:
+          type: "string"
+          nullable: false
+      - name: "targetVersionId"
+        in: "query"
+        description: ""
+        required: true
+        schema:
+          type: "string"
+          nullable: false
+      - name: "operator"
+        in: "query"
+        description: ""
+        required: true
+        schema:
+          type: "string"
+          nullable: false
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: "array"
+              description: ""
+              items:
+                type: "string"
+      responses:
+        "200":
+          description: "No Content"
+  /api/publish/deprecate:
+    post:
+      summary: "废弃配置"
+      description: "废弃配置"
+      parameters:
+      - name: "versionId"
+        in: "query"
+        description: ""
+        required: true
+        schema:
+          type: "string"
+          nullable: false
+      - name: "operator"
+        in: "query"
+        description: ""
+        required: true
+        schema:
+          type: "string"
+          nullable: false
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: "array"
+              description: ""
+              items:
+                type: "string"
+      responses:
+        "200":
+          description: "No Content"
+  /api/publish/history/{versionId}:
+    get:
+      summary: "获取发布历史"
+      description: "获取发布历史"
+      parameters:
+      - name: "versionId"
+        in: "path"
+        description: ""
+        required: true
+        schema:
+          type: "string"
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                type: "array"
+                items:
+                  type: "object"
+                  properties:
+                    id:
+                      type: "integer"
+                      description: ""
+                      format: "int64"
+                    versionId:
+                      type: "string"
+                      description: ""
+                    configType:
+                      type: "string"
+                      description: ""
+                    status:
+                      type: "string"
+                      description: ""
+                    grayGroups:
+                      type: "string"
+                      description: ""
+                    operator:
+                      type: "string"
+                      description: ""
+                    gmtCreate:
+                      type: "string"
+                      description: ""
+                    gmtModified:
+                      type: "string"
+                      description: ""
+  /api/publish/stages:
+    get:
+      summary: "获取所有灰度阶段信息"
+      description: "获取所有灰度阶段信息"
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  key:
+                    type: "array"
+                    items:
+                      type: "string"
+  /api/api-meta:
+    post:
+      summary: "创建API Meta配置"
+      description: "创建API Meta配置"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: "object"
+              properties:
+                id:
+                  type: "integer"
+                  description: ""
+                  format: "int64"
+                versionId:
+                  type: "string"
+                  description: ""
+                apiName:
+                  type: "string"
+                  description: ""
+                product:
+                  type: "string"
+                  description: ""
+                gatewayType:
+                  type: "string"
+                  description: ""
+                dm:
+                  type: "string"
+                  description: ""
+                gatewayCode:
+                  type: "string"
+                  description: ""
+                apiVersion:
+                  type: "string"
+                  description: ""
+                actiontrailCode:
+                  type: "string"
+                  description: ""
+                operationType:
+                  type: "string"
+                  description: ""
+                description:
+                  type: "string"
+                  description: ""
+                visibility:
+                  type: "string"
+                  description: ""
+                isolationType:
+                  type: "string"
+                  description: ""
+                serviceType:
+                  type: "string"
+                  description: ""
+                responseBodyLog:
+                  type: "boolean"
+                  description: ""
+                invokeType:
+                  type: "string"
+                  description: ""
+                resourceSpec:
+                  type: "string"
+                  description: ""
+                status:
+                  type: "string"
+                  description: ""
+                effectiveGrayGroups:
+                  type: "string"
+                  description: ""
+                gmtCreate:
+                  type: "string"
+                  description: ""
+                gmtModified:
+                  type: "string"
+                  description: ""
+                effectiveFlag:
+                  type: "string"
+                  description: ""
+                auditStatus:
+                  type: "string"
+                  description: ""
+              description: ""
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  id:
+                    type: "integer"
+                    description: ""
+                    format: "int64"
+                  versionId:
+                    type: "string"
+                    description: ""
+                  apiName:
+                    type: "string"
+                    description: ""
+                  product:
+                    type: "string"
+                    description: ""
+                  gatewayType:
+                    type: "string"
+                    description: ""
+                  dm:
+                    type: "string"
+                    description: ""
+                  gatewayCode:
+                    type: "string"
+                    description: ""
+                  apiVersion:
+                    type: "string"
+                    description: ""
+                  actiontrailCode:
+                    type: "string"
+                    description: ""
+                  operationType:
+                    type: "string"
+                    description: ""
+                  description:
+                    type: "string"
+                    description: ""
+                  visibility:
+                    type: "string"
+                    description: ""
+                  isolationType:
+                    type: "string"
+                    description: ""
+                  serviceType:
+                    type: "string"
+                    description: ""
+                  responseBodyLog:
+                    type: "boolean"
+                    description: ""
+                  invokeType:
+                    type: "string"
+                    description: ""
+                  resourceSpec:
+                    type: "string"
+                    description: ""
+                  status:
+                    type: "string"
+                    description: ""
+                  effectiveGrayGroups:
+                    type: "string"
+                    description: ""
+                  gmtCreate:
+                    type: "string"
+                    description: ""
+                  gmtModified:
+                    type: "string"
+                    description: ""
+                  effectiveFlag:
+                    type: "string"
+                    description: ""
+                  auditStatus:
+                    type: "string"
+                    description: ""
+  /api/api-meta/{versionId}:
+    put:
+      summary: "更新API Meta配置"
+      description: "更新API Meta配置"
+      parameters:
+      - name: "versionId"
+        in: "path"
+        description: ""
+        required: true
+        schema:
+          type: "string"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: "object"
+              properties:
+                id:
+                  type: "integer"
+                  description: ""
+                  format: "int64"
+                versionId:
+                  type: "string"
+                  description: ""
+                apiName:
+                  type: "string"
+                  description: ""
+                product:
+                  type: "string"
+                  description: ""
+                gatewayType:
+                  type: "string"
+                  description: ""
+                dm:
+                  type: "string"
+                  description: ""
+                gatewayCode:
+                  type: "string"
+                  description: ""
+                apiVersion:
+                  type: "string"
+                  description: ""
+                actiontrailCode:
+                  type: "string"
+                  description: ""
+                operationType:
+                  type: "string"
+                  description: ""
+                description:
+                  type: "string"
+                  description: ""
+                visibility:
+                  type: "string"
+                  description: ""
+                isolationType:
+                  type: "string"
+                  description: ""
+                serviceType:
+                  type: "string"
+                  description: ""
+                responseBodyLog:
+                  type: "boolean"
+                  description: ""
+                invokeType:
+                  type: "string"
+                  description: ""
+                resourceSpec:
+                  type: "string"
+                  description: ""
+                status:
+                  type: "string"
+                  description: ""
+                effectiveGrayGroups:
+                  type: "string"
+                  description: ""
+                gmtCreate:
+                  type: "string"
+                  description: ""
+                gmtModified:
+                  type: "string"
+                  description: ""
+                effectiveFlag:
+                  type: "string"
+                  description: ""
+                auditStatus:
+                  type: "string"
+                  description: ""
+              description: ""
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  id:
+                    type: "integer"
+                    description: ""
+                    format: "int64"
+                  versionId:
+                    type: "string"
+                    description: ""
+                  apiName:
+                    type: "string"
+                    description: ""
+                  product:
+                    type: "string"
+                    description: ""
+                  gatewayType:
+                    type: "string"
+                    description: ""
+                  dm:
+                    type: "string"
+                    description: ""
+                  gatewayCode:
+                    type: "string"
+                    description: ""
+                  apiVersion:
+                    type: "string"
+                    description: ""
+                  actiontrailCode:
+                    type: "string"
+                    description: ""
+                  operationType:
+                    type: "string"
+                    description: ""
+                  description:
+                    type: "string"
+                    description: ""
+                  visibility:
+                    type: "string"
+                    description: ""
+                  isolationType:
+                    type: "string"
+                    description: ""
+                  serviceType:
+                    type: "string"
+                    description: ""
+                  responseBodyLog:
+                    type: "boolean"
+                    description: ""
+                  invokeType:
+                    type: "string"
+                    description: ""
+                  resourceSpec:
+                    type: "string"
+                    description: ""
+                  status:
+                    type: "string"
+                    description: ""
+                  effectiveGrayGroups:
+                    type: "string"
+                    description: ""
+                  gmtCreate:
+                    type: "string"
+                    description: ""
+                  gmtModified:
+                    type: "string"
+                    description: ""
+                  effectiveFlag:
+                    type: "string"
+                    description: ""
+                  auditStatus:
+                    type: "string"
+                    description: ""
+  /api/api-meta/published/all:
+    get:
+      summary: "获取所有已发布的API Meta配置"
+      description: "获取所有已发布的API Meta配置"
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                type: "array"
+                items:
+                  type: "object"
+                  properties:
+                    id:
+                      type: "integer"
+                      description: ""
+                      format: "int64"
+                    versionId:
+                      type: "string"
+                      description: ""
+                    apiName:
+                      type: "string"
+                      description: ""
+                    product:
+                      type: "string"
+                      description: ""
+                    gatewayType:
+                      type: "string"
+                      description: ""
+                    dm:
+                      type: "string"
+                      description: ""
+                    gatewayCode:
+                      type: "string"
+                      description: ""
+                    apiVersion:
+                      type: "string"
+                      description: ""
+                    actiontrailCode:
+                      type: "string"
+                      description: ""
+                    operationType:
+                      type: "string"
+                      description: ""
+                    description:
+                      type: "string"
+                      description: ""
+                    visibility:
+                      type: "string"
+                      description: ""
+                    isolationType:
+                      type: "string"
+                      description: ""
+                    serviceType:
+                      type: "string"
+                      description: ""
+                    responseBodyLog:
+                      type: "boolean"
+                      description: ""
+                    invokeType:
+                      type: "string"
+                      description: ""
+                    resourceSpec:
+                      type: "string"
+                      description: ""
+                    status:
+                      type: "string"
+                      description: ""
+                    effectiveGrayGroups:
+                      type: "string"
+                      description: ""
+                    gmtCreate:
+                      type: "string"
+                      description: ""
+                    gmtModified:
+                      type: "string"
+                      description: ""
+                    effectiveFlag:
+                      type: "string"
+                      description: ""
+                    auditStatus:
+                      type: "string"
+                      description: ""
+  /api/api-meta/region/{region}:
+    get:
+      summary: "获取指定地域的API Meta配置"
+      description: "获取指定地域的API Meta配置"
+      parameters:
+      - name: "region"
+        in: "path"
+        description: ""
+        required: true
+        schema:
+          type: "string"
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                type: "array"
+                items:
+                  type: "object"
+                  properties:
+                    id:
+                      type: "integer"
+                      description: ""
+                      format: "int64"
+                    versionId:
+                      type: "string"
+                      description: ""
+                    apiName:
+                      type: "string"
+                      description: ""
+                    product:
+                      type: "string"
+                      description: ""
+                    gatewayType:
+                      type: "string"
+                      description: ""
+                    dm:
+                      type: "string"
+                      description: ""
+                    gatewayCode:
+                      type: "string"
+                      description: ""
+                    apiVersion:
+                      type: "string"
+                      description: ""
+                    actiontrailCode:
+                      type: "string"
+                      description: ""
+                    operationType:
+                      type: "string"
+                      description: ""
+                    description:
+                      type: "string"
+                      description: ""
+                    visibility:
+                      type: "string"
+                      description: ""
+                    isolationType:
+                      type: "string"
+                      description: ""
+                    serviceType:
+                      type: "string"
+                      description: ""
+                    responseBodyLog:
+                      type: "boolean"
+                      description: ""
+                    invokeType:
+                      type: "string"
+                      description: ""
+                    resourceSpec:
+                      type: "string"
+                      description: ""
+                    status:
+                      type: "string"
+                      description: ""
+                    effectiveGrayGroups:
+                      type: "string"
+                      description: ""
+                    gmtCreate:
+                      type: "string"
+                      description: ""
+                    gmtModified:
+                      type: "string"
+                      description: ""
+                    effectiveFlag:
+                      type: "string"
+                      description: ""
+                    auditStatus:
+                      type: "string"
+                      description: ""
+  /api/api-meta/active:
+    get:
+      summary: "获取指定API在指定地域生效的配置"
+      description: "获取指定API在指定地域生效的配置"
+      parameters:
+      - name: "gatewayType"
+        in: "query"
+        description: ""
+        required: true
+        schema:
+          type: "string"
+          nullable: false
+      - name: "gatewayCode"
+        in: "query"
+        description: ""
+        required: true
+        schema:
+          type: "string"
+          nullable: false
+      - name: "apiVersion"
+        in: "query"
+        description: ""
+        required: true
+        schema:
+          type: "string"
+          nullable: false
+      - name: "apiName"
+        in: "query"
+        description: ""
+        required: true
+        schema:
+          type: "string"
+          nullable: false
+      - name: "region"
+        in: "query"
+        description: ""
+        required: true
+        schema:
+          type: "string"
+          nullable: false
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  id:
+                    type: "integer"
+                    description: ""
+                    format: "int64"
+                  versionId:
+                    type: "string"
+                    description: ""
+                  apiName:
+                    type: "string"
+                    description: ""
+                  product:
+                    type: "string"
+                    description: ""
+                  gatewayType:
+                    type: "string"
+                    description: ""
+                  dm:
+                    type: "string"
+                    description: ""
+                  gatewayCode:
+                    type: "string"
+                    description: ""
+                  apiVersion:
+                    type: "string"
+                    description: ""
+                  actiontrailCode:
+                    type: "string"
+                    description: ""
+                  operationType:
+                    type: "string"
+                    description: ""
+                  description:
+                    type: "string"
+                    description: ""
+                  visibility:
+                    type: "string"
+                    description: ""
+                  isolationType:
+                    type: "string"
+                    description: ""
+                  serviceType:
+                    type: "string"
+                    description: ""
+                  responseBodyLog:
+                    type: "boolean"
+                    description: ""
+                  invokeType:
+                    type: "string"
+                    description: ""
+                  resourceSpec:
+                    type: "string"
+                    description: ""
+                  status:
+                    type: "string"
+                    description: ""
+                  effectiveGrayGroups:
+                    type: "string"
+                    description: ""
+                  gmtCreate:
+                    type: "string"
+                    description: ""
+                  gmtModified:
+                    type: "string"
+                    description: ""
+                  effectiveFlag:
+                    type: "string"
+                    description: ""
+                  auditStatus:
+                    type: "string"
+                    description: ""
+  /api/api-meta/published:
+    get:
+      summary: "获取指定API的所有已发布配置"
+      description: "获取指定API的所有已发布配置"
+      parameters:
+      - name: "gatewayType"
+        in: "query"
+        description: ""
+        required: true
+        schema:
+          type: "string"
+          nullable: false
+      - name: "gatewayCode"
+        in: "query"
+        description: ""
+        required: true
+        schema:
+          type: "string"
+          nullable: false
+      - name: "apiVersion"
+        in: "query"
+        description: ""
+        required: true
+        schema:
+          type: "string"
+          nullable: false
+      - name: "apiName"
+        in: "query"
+        description: ""
+        required: true
+        schema:
+          type: "string"
+          nullable: false
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                type: "array"
+                items:
+                  type: "object"
+                  properties:
+                    id:
+                      type: "integer"
+                      description: ""
+                      format: "int64"
+                    versionId:
+                      type: "string"
+                      description: ""
+                    apiName:
+                      type: "string"
+                      description: ""
+                    product:
+                      type: "string"
+                      description: ""
+                    gatewayType:
+                      type: "string"
+                      description: ""
+                    dm:
+                      type: "string"
+                      description: ""
+                    gatewayCode:
+                      type: "string"
+                      description: ""
+                    apiVersion:
+                      type: "string"
+                      description: ""
+                    actiontrailCode:
+                      type: "string"
+                      description: ""
+                    operationType:
+                      type: "string"
+                      description: ""
+                    description:
+                      type: "string"
+                      description: ""
+                    visibility:
+                      type: "string"
+                      description: ""
+                    isolationType:
+                      type: "string"
+                      description: ""
+                    serviceType:
+                      type: "string"
+                      description: ""
+                    responseBodyLog:
+                      type: "boolean"
+                      description: ""
+                    invokeType:
+                      type: "string"
+                      description: ""
+                    resourceSpec:
+                      type: "string"
+                      description: ""
+                    status:
+                      type: "string"
+                      description: ""
+                    effectiveGrayGroups:
+                      type: "string"
+                      description: ""
+                    gmtCreate:
+                      type: "string"
+                      description: ""
+                    gmtModified:
+                      type: "string"
+                      description: ""
+                    effectiveFlag:
+                      type: "string"
+                      description: ""
+                    auditStatus:
+                      type: "string"
+                      description: ""
+  /api/api-meta/version/{versionId}:
+    get:
+      summary: "根据版本ID查询配置"
+      description: "根据版本ID查询配置"
+      parameters:
+      - name: "versionId"
+        in: "path"
+        description: ""
+        required: true
+        schema:
+          type: "string"
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  id:
+                    type: "integer"
+                    description: ""
+                    format: "int64"
+                  versionId:
+                    type: "string"
+                    description: ""
+                  apiName:
+                    type: "string"
+                    description: ""
+                  product:
+                    type: "string"
+                    description: ""
+                  gatewayType:
+                    type: "string"
+                    description: ""
+                  dm:
+                    type: "string"
+                    description: ""
+                  gatewayCode:
+                    type: "string"
+                    description: ""
+                  apiVersion:
+                    type: "string"
+                    description: ""
+                  actiontrailCode:
+                    type: "string"
+                    description: ""
+                  operationType:
+                    type: "string"
+                    description: ""
+                  description:
+                    type: "string"
+                    description: ""
+                  visibility:
+                    type: "string"
+                    description: ""
+                  isolationType:
+                    type: "string"
+                    description: ""
+                  serviceType:
+                    type: "string"
+                    description: ""
+                  responseBodyLog:
+                    type: "boolean"
+                    description: ""
+                  invokeType:
+                    type: "string"
+                    description: ""
+                  resourceSpec:
+                    type: "string"
+                    description: ""
+                  status:
+                    type: "string"
+                    description: ""
+                  effectiveGrayGroups:
+                    type: "string"
+                    description: ""
+                  gmtCreate:
+                    type: "string"
+                    description: ""
+                  gmtModified:
+                    type: "string"
+                    description: ""
+                  effectiveFlag:
+                    type: "string"
+                    description: ""
+                  auditStatus:
+                    type: "string"
+                    description: ""
+  /api/api-record:
+    post:
+      summary: "创建API记录配置"
+      description: "创建API记录配置"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: "object"
+              properties:
+                id:
+                  type: "integer"
+                  description: ""
+                  format: "int64"
+                versionId:
+                  type: "string"
+                  description: ""
+                gatewayType:
+                  type: "string"
+                  description: ""
+                gatewayCode:
+                  type: "string"
+                  description: ""
+                apiVersion:
+                  type: "string"
+                  description: ""
+                apiName:
+                  type: "string"
+                  description: ""
+                loghubStream:
+                  type: "string"
+                  description: ""
+                basicConfig:
+                  type: "string"
+                  description: ""
+                eventConfig:
+                  type: "string"
+                  description: ""
+                userIdentityConfig:
+                  type: "string"
+                  description: ""
+                requestConfig:
+                  type: "string"
+                  description: ""
+                responseConfig:
+                  type: "string"
+                  description: ""
+                filterConfig:
+                  type: "string"
+                  description: ""
+                referenceResourceConfig:
+                  type: "string"
+                  description: ""
+                type:
+                  type: "string"
+                  description: ""
+                status:
+                  type: "string"
+                  description: ""
+                effectiveGrayGroups:
+                  type: "string"
+                  description: ""
+                gmtCreate:
+                  type: "string"
+                  description: ""
+                gmtModified:
+                  type: "string"
+                  description: ""
+              description: ""
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  id:
+                    type: "integer"
+                    description: ""
+                    format: "int64"
+                  versionId:
+                    type: "string"
+                    description: ""
+                  gatewayType:
+                    type: "string"
+                    description: ""
+                  gatewayCode:
+                    type: "string"
+                    description: ""
+                  apiVersion:
+                    type: "string"
+                    description: ""
+                  apiName:
+                    type: "string"
+                    description: ""
+                  loghubStream:
+                    type: "string"
+                    description: ""
+                  basicConfig:
+                    type: "string"
+                    description: ""
+                  eventConfig:
+                    type: "string"
+                    description: ""
+                  userIdentityConfig:
+                    type: "string"
+                    description: ""
+                  requestConfig:
+                    type: "string"
+                    description: ""
+                  responseConfig:
+                    type: "string"
+                    description: ""
+                  filterConfig:
+                    type: "string"
+                    description: ""
+                  referenceResourceConfig:
+                    type: "string"
+                    description: ""
+                  type:
+                    type: "string"
+                    description: ""
+                  status:
+                    type: "string"
+                    description: ""
+                  effectiveGrayGroups:
+                    type: "string"
+                    description: ""
+                  gmtCreate:
+                    type: "string"
+                    description: ""
+                  gmtModified:
+                    type: "string"
+                    description: ""
+  /api/api-record/{versionId}:
+    put:
+      summary: "更新API记录配置"
+      description: "更新API记录配置"
+      parameters:
+      - name: "versionId"
+        in: "path"
+        description: ""
+        required: true
+        schema:
+          type: "string"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: "object"
+              properties:
+                id:
+                  type: "integer"
+                  description: ""
+                  format: "int64"
+                versionId:
+                  type: "string"
+                  description: ""
+                gatewayType:
+                  type: "string"
+                  description: ""
+                gatewayCode:
+                  type: "string"
+                  description: ""
+                apiVersion:
+                  type: "string"
+                  description: ""
+                apiName:
+                  type: "string"
+                  description: ""
+                loghubStream:
+                  type: "string"
+                  description: ""
+                basicConfig:
+                  type: "string"
+                  description: ""
+                eventConfig:
+                  type: "string"
+                  description: ""
+                userIdentityConfig:
+                  type: "string"
+                  description: ""
+                requestConfig:
+                  type: "string"
+                  description: ""
+                responseConfig:
+                  type: "string"
+                  description: ""
+                filterConfig:
+                  type: "string"
+                  description: ""
+                referenceResourceConfig:
+                  type: "string"
+                  description: ""
+                type:
+                  type: "string"
+                  description: ""
+                status:
+                  type: "string"
+                  description: ""
+                effectiveGrayGroups:
+                  type: "string"
+                  description: ""
+                gmtCreate:
+                  type: "string"
+                  description: ""
+                gmtModified:
+                  type: "string"
+                  description: ""
+              description: ""
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  id:
+                    type: "integer"
+                    description: ""
+                    format: "int64"
+                  versionId:
+                    type: "string"
+                    description: ""
+                  gatewayType:
+                    type: "string"
+                    description: ""
+                  gatewayCode:
+                    type: "string"
+                    description: ""
+                  apiVersion:
+                    type: "string"
+                    description: ""
+                  apiName:
+                    type: "string"
+                    description: ""
+                  loghubStream:
+                    type: "string"
+                    description: ""
+                  basicConfig:
+                    type: "string"
+                    description: ""
+                  eventConfig:
+                    type: "string"
+                    description: ""
+                  userIdentityConfig:
+                    type: "string"
+                    description: ""
+                  requestConfig:
+                    type: "string"
+                    description: ""
+                  responseConfig:
+                    type: "string"
+                    description: ""
+                  filterConfig:
+                    type: "string"
+                    description: ""
+                  referenceResourceConfig:
+                    type: "string"
+                    description: ""
+                  type:
+                    type: "string"
+                    description: ""
+                  status:
+                    type: "string"
+                    description: ""
+                  effectiveGrayGroups:
+                    type: "string"
+                    description: ""
+                  gmtCreate:
+                    type: "string"
+                    description: ""
+                  gmtModified:
+                    type: "string"
+                    description: ""
+  /api/api-record/published/all:
+    get:
+      summary: "获取所有已发布的API记录配置"
+      description: "获取所有已发布的API记录配置"
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                type: "array"
+                items:
+                  type: "object"
+                  properties:
+                    id:
+                      type: "integer"
+                      description: ""
+                      format: "int64"
+                    versionId:
+                      type: "string"
+                      description: ""
+                    gatewayType:
+                      type: "string"
+                      description: ""
+                    gatewayCode:
+                      type: "string"
+                      description: ""
+                    apiVersion:
+                      type: "string"
+                      description: ""
+                    apiName:
+                      type: "string"
+                      description: ""
+                    loghubStream:
+                      type: "string"
+                      description: ""
+                    basicConfig:
+                      type: "string"
+                      description: ""
+                    eventConfig:
+                      type: "string"
+                      description: ""
+                    userIdentityConfig:
+                      type: "string"
+                      description: ""
+                    requestConfig:
+                      type: "string"
+                      description: ""
+                    responseConfig:
+                      type: "string"
+                      description: ""
+                    filterConfig:
+                      type: "string"
+                      description: ""
+                    referenceResourceConfig:
+                      type: "string"
+                      description: ""
+                    type:
+                      type: "string"
+                      description: ""
+                    status:
+                      type: "string"
+                      description: ""
+                    effectiveGrayGroups:
+                      type: "string"
+                      description: ""
+                    gmtCreate:
+                      type: "string"
+                      description: ""
+                    gmtModified:
+                      type: "string"
+                      description: ""
+  /api/api-record/region/{region}:
+    get:
+      summary: "获取指定地域的API记录配置"
+      description: "获取指定地域的API记录配置"
+      parameters:
+      - name: "region"
+        in: "path"
+        description: ""
+        required: true
+        schema:
+          type: "string"
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                type: "array"
+                items:
+                  type: "object"
+                  properties:
+                    id:
+                      type: "integer"
+                      description: ""
+                      format: "int64"
+                    versionId:
+                      type: "string"
+                      description: ""
+                    gatewayType:
+                      type: "string"
+                      description: ""
+                    gatewayCode:
+                      type: "string"
+                      description: ""
+                    apiVersion:
+                      type: "string"
+                      description: ""
+                    apiName:
+                      type: "string"
+                      description: ""
+                    loghubStream:
+                      type: "string"
+                      description: ""
+                    basicConfig:
+                      type: "string"
+                      description: ""
+                    eventConfig:
+                      type: "string"
+                      description: ""
+                    userIdentityConfig:
+                      type: "string"
+                      description: ""
+                    requestConfig:
+                      type: "string"
+                      description: ""
+                    responseConfig:
+                      type: "string"
+                      description: ""
+                    filterConfig:
+                      type: "string"
+                      description: ""
+                    referenceResourceConfig:
+                      type: "string"
+                      description: ""
+                    type:
+                      type: "string"
+                      description: ""
+                    status:
+                      type: "string"
+                      description: ""
+                    effectiveGrayGroups:
+                      type: "string"
+                      description: ""
+                    gmtCreate:
+                      type: "string"
+                      description: ""
+                    gmtModified:
+                      type: "string"
+                      description: ""
+  /api/api-record/active:
+    get:
+      summary: "获取指定API在指定地域生效的配置"
+      description: "获取指定API在指定地域生效的配置"
+      parameters:
+      - name: "gatewayType"
+        in: "query"
+        description: ""
+        required: true
+        schema:
+          type: "string"
+          nullable: false
+      - name: "gatewayCode"
+        in: "query"
+        description: ""
+        required: true
+        schema:
+          type: "string"
+          nullable: false
+      - name: "apiVersion"
+        in: "query"
+        description: ""
+        required: true
+        schema:
+          type: "string"
+          nullable: false
+      - name: "apiName"
+        in: "query"
+        description: ""
+        required: true
+        schema:
+          type: "string"
+          nullable: false
+      - name: "region"
+        in: "query"
+        description: ""
+        required: true
+        schema:
+          type: "string"
+          nullable: false
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  id:
+                    type: "integer"
+                    description: ""
+                    format: "int64"
+                  versionId:
+                    type: "string"
+                    description: ""
+                  gatewayType:
+                    type: "string"
+                    description: ""
+                  gatewayCode:
+                    type: "string"
+                    description: ""
+                  apiVersion:
+                    type: "string"
+                    description: ""
+                  apiName:
+                    type: "string"
+                    description: ""
+                  loghubStream:
+                    type: "string"
+                    description: ""
+                  basicConfig:
+                    type: "string"
+                    description: ""
+                  eventConfig:
+                    type: "string"
+                    description: ""
+                  userIdentityConfig:
+                    type: "string"
+                    description: ""
+                  requestConfig:
+                    type: "string"
+                    description: ""
+                  responseConfig:
+                    type: "string"
+                    description: ""
+                  filterConfig:
+                    type: "string"
+                    description: ""
+                  referenceResourceConfig:
+                    type: "string"
+                    description: ""
+                  type:
+                    type: "string"
+                    description: ""
+                  status:
+                    type: "string"
+                    description: ""
+                  effectiveGrayGroups:
+                    type: "string"
+                    description: ""
+                  gmtCreate:
+                    type: "string"
+                    description: ""
+                  gmtModified:
+                    type: "string"
+                    description: ""
+  /api/api-record/published:
+    get:
+      summary: "获取指定API的所有已发布配置"
+      description: "获取指定API的所有已发布配置"
+      parameters:
+      - name: "gatewayType"
+        in: "query"
+        description: ""
+        required: true
+        schema:
+          type: "string"
+          nullable: false
+      - name: "gatewayCode"
+        in: "query"
+        description: ""
+        required: true
+        schema:
+          type: "string"
+          nullable: false
+      - name: "apiVersion"
+        in: "query"
+        description: ""
+        required: true
+        schema:
+          type: "string"
+          nullable: false
+      - name: "apiName"
+        in: "query"
+        description: ""
+        required: true
+        schema:
+          type: "string"
+          nullable: false
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                type: "array"
+                items:
+                  type: "object"
+                  properties:
+                    id:
+                      type: "integer"
+                      description: ""
+                      format: "int64"
+                    versionId:
+                      type: "string"
+                      description: ""
+                    gatewayType:
+                      type: "string"
+                      description: ""
+                    gatewayCode:
+                      type: "string"
+                      description: ""
+                    apiVersion:
+                      type: "string"
+                      description: ""
+                    apiName:
+                      type: "string"
+                      description: ""
+                    loghubStream:
+                      type: "string"
+                      description: ""
+                    basicConfig:
+                      type: "string"
+                      description: ""
+                    eventConfig:
+                      type: "string"
+                      description: ""
+                    userIdentityConfig:
+                      type: "string"
+                      description: ""
+                    requestConfig:
+                      type: "string"
+                      description: ""
+                    responseConfig:
+                      type: "string"
+                      description: ""
+                    filterConfig:
+                      type: "string"
+                      description: ""
+                    referenceResourceConfig:
+                      type: "string"
+                      description: ""
+                    type:
+                      type: "string"
+                      description: ""
+                    status:
+                      type: "string"
+                      description: ""
+                    effectiveGrayGroups:
+                      type: "string"
+                      description: ""
+                    gmtCreate:
+                      type: "string"
+                      description: ""
+                    gmtModified:
+                      type: "string"
+                      description: ""
+  /api/datasource:
+    post:
+      summary: "创建数据源配置"
+      description: "创建数据源配置"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: "object"
+              properties:
+                id:
+                  type: "integer"
+                  description: ""
+                  format: "int64"
+                versionId:
+                  type: "string"
+                  description: ""
+                source:
+                  type: "string"
+                  description: ""
+                sourceGroup:
+                  type: "string"
+                  description: ""
+                gatewayType:
+                  type: "string"
+                  description: ""
+                dm:
+                  type: "string"
+                  description: ""
+                loghubEndpoint:
+                  type: "string"
+                  description: ""
+                loghubProject:
+                  type: "string"
+                  description: ""
+                loghubStream:
+                  type: "string"
+                  description: ""
+                loghubAccesskeyId:
+                  type: "string"
+                  description: ""
+                loghubAccesskeySecret:
+                  type: "string"
+                  description: ""
+                loghubAssumeRoleArn:
+                  type: "string"
+                  description: ""
+                loghubCursor:
+                  type: "string"
+                  description: ""
+                consumeRegion:
+                  type: "string"
+                  description: ""
+                dataFetchIntervalMillis:
+                  type: "integer"
+                  description: ""
+                status:
+                  type: "string"
+                  description: ""
+                effectiveGrayGroups:
+                  type: "string"
+                  description: ""
+                gmtCreate:
+                  type: "string"
+                  description: ""
+                gmtModified:
+                  type: "string"
+                  description: ""
+              description: ""
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  id:
+                    type: "integer"
+                    description: ""
+                    format: "int64"
+                  versionId:
+                    type: "string"
+                    description: ""
+                  source:
+                    type: "string"
+                    description: ""
+                  sourceGroup:
+                    type: "string"
+                    description: ""
+                  gatewayType:
+                    type: "string"
+                    description: ""
+                  dm:
+                    type: "string"
+                    description: ""
+                  loghubEndpoint:
+                    type: "string"
+                    description: ""
+                  loghubProject:
+                    type: "string"
+                    description: ""
+                  loghubStream:
+                    type: "string"
+                    description: ""
+                  loghubAccesskeyId:
+                    type: "string"
+                    description: ""
+                  loghubAccesskeySecret:
+                    type: "string"
+                    description: ""
+                  loghubAssumeRoleArn:
+                    type: "string"
+                    description: ""
+                  loghubCursor:
+                    type: "string"
+                    description: ""
+                  consumeRegion:
+                    type: "string"
+                    description: ""
+                  dataFetchIntervalMillis:
+                    type: "integer"
+                    description: ""
+                  status:
+                    type: "string"
+                    description: ""
+                  effectiveGrayGroups:
+                    type: "string"
+                    description: ""
+                  gmtCreate:
+                    type: "string"
+                    description: ""
+                  gmtModified:
+                    type: "string"
+                    description: ""
+  /api/datasource/{versionId}:
+    put:
+      summary: "更新数据源配置"
+      description: "更新数据源配置"
+      parameters:
+      - name: "versionId"
+        in: "path"
+        description: ""
+        required: true
+        schema:
+          type: "string"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: "object"
+              properties:
+                id:
+                  type: "integer"
+                  description: ""
+                  format: "int64"
+                versionId:
+                  type: "string"
+                  description: ""
+                source:
+                  type: "string"
+                  description: ""
+                sourceGroup:
+                  type: "string"
+                  description: ""
+                gatewayType:
+                  type: "string"
+                  description: ""
+                dm:
+                  type: "string"
+                  description: ""
+                loghubEndpoint:
+                  type: "string"
+                  description: ""
+                loghubProject:
+                  type: "string"
+                  description: ""
+                loghubStream:
+                  type: "string"
+                  description: ""
+                loghubAccesskeyId:
+                  type: "string"
+                  description: ""
+                loghubAccesskeySecret:
+                  type: "string"
+                  description: ""
+                loghubAssumeRoleArn:
+                  type: "string"
+                  description: ""
+                loghubCursor:
+                  type: "string"
+                  description: ""
+                consumeRegion:
+                  type: "string"
+                  description: ""
+                dataFetchIntervalMillis:
+                  type: "integer"
+                  description: ""
+                status:
+                  type: "string"
+                  description: ""
+                effectiveGrayGroups:
+                  type: "string"
+                  description: ""
+                gmtCreate:
+                  type: "string"
+                  description: ""
+                gmtModified:
+                  type: "string"
+                  description: ""
+              description: ""
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  id:
+                    type: "integer"
+                    description: ""
+                    format: "int64"
+                  versionId:
+                    type: "string"
+                    description: ""
+                  source:
+                    type: "string"
+                    description: ""
+                  sourceGroup:
+                    type: "string"
+                    description: ""
+                  gatewayType:
+                    type: "string"
+                    description: ""
+                  dm:
+                    type: "string"
+                    description: ""
+                  loghubEndpoint:
+                    type: "string"
+                    description: ""
+                  loghubProject:
+                    type: "string"
+                    description: ""
+                  loghubStream:
+                    type: "string"
+                    description: ""
+                  loghubAccesskeyId:
+                    type: "string"
+                    description: ""
+                  loghubAccesskeySecret:
+                    type: "string"
+                    description: ""
+                  loghubAssumeRoleArn:
+                    type: "string"
+                    description: ""
+                  loghubCursor:
+                    type: "string"
+                    description: ""
+                  consumeRegion:
+                    type: "string"
+                    description: ""
+                  dataFetchIntervalMillis:
+                    type: "integer"
+                    description: ""
+                  status:
+                    type: "string"
+                    description: ""
+                  effectiveGrayGroups:
+                    type: "string"
+                    description: ""
+                  gmtCreate:
+                    type: "string"
+                    description: ""
+                  gmtModified:
+                    type: "string"
+                    description: ""
+  /api/datasource/current-region:
+    get:
+      summary: "获取当前地域的数据源配置"
+      description: "获取当前地域的数据源配置"
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  key:
+                    type: "object"
+                    properties: {}
+  /api/datasource/region/{region}:
+    get:
+      summary: "获取指定地域的数据源配置"
+      description: "获取指定地域的数据源配置"
+      parameters:
+      - name: "region"
+        in: "path"
+        description: ""
+        required: true
+        schema:
+          type: "string"
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                type: "array"
+                items:
+                  type: "object"
+                  properties:
+                    id:
+                      type: "integer"
+                      description: ""
+                      format: "int64"
+                    versionId:
+                      type: "string"
+                      description: ""
+                    source:
+                      type: "string"
+                      description: ""
+                    sourceGroup:
+                      type: "string"
+                      description: ""
+                    gatewayType:
+                      type: "string"
+                      description: ""
+                    dm:
+                      type: "string"
+                      description: ""
+                    loghubEndpoint:
+                      type: "string"
+                      description: ""
+                    loghubProject:
+                      type: "string"
+                      description: ""
+                    loghubStream:
+                      type: "string"
+                      description: ""
+                    loghubAccesskeyId:
+                      type: "string"
+                      description: ""
+                    loghubAccesskeySecret:
+                      type: "string"
+                      description: ""
+                    loghubAssumeRoleArn:
+                      type: "string"
+                      description: ""
+                    loghubCursor:
+                      type: "string"
+                      description: ""
+                    consumeRegion:
+                      type: "string"
+                      description: ""
+                    dataFetchIntervalMillis:
+                      type: "integer"
+                      description: ""
+                    status:
+                      type: "string"
+                      description: ""
+                    effectiveGrayGroups:
+                      type: "string"
+                      description: ""
+                    gmtCreate:
+                      type: "string"
+                      description: ""
+                    gmtModified:
+                      type: "string"
+                      description: ""
+  /api/datasource/{source}/active:
+    get:
+      summary: "获取指定source在当前地域生效的配置"
+      description: "获取指定source在当前地域生效的配置"
+      parameters:
+      - name: "source"
+        in: "path"
+        description: ""
+        required: true
+        schema:
+          type: "string"
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  id:
+                    type: "integer"
+                    description: ""
+                    format: "int64"
+                  versionId:
+                    type: "string"
+                    description: ""
+                  source:
+                    type: "string"
+                    description: ""
+                  sourceGroup:
+                    type: "string"
+                    description: ""
+                  gatewayType:
+                    type: "string"
+                    description: ""
+                  dm:
+                    type: "string"
+                    description: ""
+                  loghubEndpoint:
+                    type: "string"
+                    description: ""
+                  loghubProject:
+                    type: "string"
+                    description: ""
+                  loghubStream:
+                    type: "string"
+                    description: ""
+                  loghubAccesskeyId:
+                    type: "string"
+                    description: ""
+                  loghubAccesskeySecret:
+                    type: "string"
+                    description: ""
+                  loghubAssumeRoleArn:
+                    type: "string"
+                    description: ""
+                  loghubCursor:
+                    type: "string"
+                    description: ""
+                  consumeRegion:
+                    type: "string"
+                    description: ""
+                  dataFetchIntervalMillis:
+                    type: "integer"
+                    description: ""
+                  status:
+                    type: "string"
+                    description: ""
+                  effectiveGrayGroups:
+                    type: "string"
+                    description: ""
+                  gmtCreate:
+                    type: "string"
+                    description: ""
+                  gmtModified:
+                    type: "string"
+                    description: ""
+  /api/datasource/{source}/published:
+    get:
+      summary: "获取指定source的所有已发布配置"
+      description: "获取指定source的所有已发布配置"
+      parameters:
+      - name: "source"
+        in: "path"
+        description: ""
+        required: true
+        schema:
+          type: "string"
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                type: "array"
+                items:
+                  type: "object"
+                  properties:
+                    id:
+                      type: "integer"
+                      description: ""
+                      format: "int64"
+                    versionId:
+                      type: "string"
+                      description: ""
+                    source:
+                      type: "string"
+                      description: ""
+                    sourceGroup:
+                      type: "string"
+                      description: ""
+                    gatewayType:
+                      type: "string"
+                      description: ""
+                    dm:
+                      type: "string"
+                      description: ""
+                    loghubEndpoint:
+                      type: "string"
+                      description: ""
+                    loghubProject:
+                      type: "string"
+                      description: ""
+                    loghubStream:
+                      type: "string"
+                      description: ""
+                    loghubAccesskeyId:
+                      type: "string"
+                      description: ""
+                    loghubAccesskeySecret:
+                      type: "string"
+                      description: ""
+                    loghubAssumeRoleArn:
+                      type: "string"
+                      description: ""
+                    loghubCursor:
+                      type: "string"
+                      description: ""
+                    consumeRegion:
+                      type: "string"
+                      description: ""
+                    dataFetchIntervalMillis:
+                      type: "integer"
+                      description: ""
+                    status:
+                      type: "string"
+                      description: ""
+                    effectiveGrayGroups:
+                      type: "string"
+                      description: ""
+                    gmtCreate:
+                      type: "string"
+                      description: ""
+                    gmtModified:
+                      type: "string"
+                      description: ""
+  /api/datasource/{source}/region/{region}:
+    get:
+      summary: "获取指定source在指定地域的生效配置"
+      description: "获取指定source在指定地域的生效配置"
+      parameters:
+      - name: "source"
+        in: "path"
+        description: ""
+        required: true
+        schema:
+          type: "string"
+      - name: "region"
+        in: "path"
+        description: ""
+        required: true
+        schema:
+          type: "string"
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  id:
+                    type: "integer"
+                    description: ""
+                    format: "int64"
+                  versionId:
+                    type: "string"
+                    description: ""
+                  source:
+                    type: "string"
+                    description: ""
+                  sourceGroup:
+                    type: "string"
+                    description: ""
+                  gatewayType:
+                    type: "string"
+                    description: ""
+                  dm:
+                    type: "string"
+                    description: ""
+                  loghubEndpoint:
+                    type: "string"
+                    description: ""
+                  loghubProject:
+                    type: "string"
+                    description: ""
+                  loghubStream:
+                    type: "string"
+                    description: ""
+                  loghubAccesskeyId:
+                    type: "string"
+                    description: ""
+                  loghubAccesskeySecret:
+                    type: "string"
+                    description: ""
+                  loghubAssumeRoleArn:
+                    type: "string"
+                    description: ""
+                  loghubCursor:
+                    type: "string"
+                    description: ""
+                  consumeRegion:
+                    type: "string"
+                    description: ""
+                  dataFetchIntervalMillis:
+                    type: "integer"
+                    description: ""
+                  status:
+                    type: "string"
+                    description: ""
+                  effectiveGrayGroups:
+                    type: "string"
+                    description: ""
+                  gmtCreate:
+                    type: "string"
+                    description: ""
+                  gmtModified:
+                    type: "string"
+                    description: ""
+components: {}
