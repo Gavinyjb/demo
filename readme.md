@@ -123,3 +123,58 @@ stateDiagram-v2
     V1_Deprecated --> [*]
 
 ```
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Service
+    participant DB
+    participant V1 as 版本1
+    participant V2 as 版本2
+    
+    %% 创建和发布版本1
+    Client->>Service: 创建配置
+    Service->>DB: 插入配置(status=DRAFT)
+    Service-->>Client: 返回版本1配置(versionId=DS202501090001)
+    
+    Client->>Service: 发布版本1到阶段1(ap-southeast-2)
+    Service->>V1: 更新状态(status=PUBLISHED)
+    Service->>V1: 设置灰度组(effective_gray_groups=ap-southeast-2)
+    Service->>DB: 记录发布历史
+    
+    Client->>Service: 发布版本1到阶段2
+    Service->>V1: 更新灰度组(effective_gray_groups=cn-chengdu,ap-southeast-2,cn-shanghai)
+    Service->>DB: 记录发布历史
+    
+    Client->>Service: 版本1全量发布
+    Service->>V1: 更新灰度组(effective_gray_groups=所有地域)
+    Service->>DB: 记录发布历史
+    
+    %% 创建和发布版本2
+    Client->>Service: 更新配置(创建新版本)
+    Service->>DB: 插入配置(status=DRAFT)
+    Service-->>Client: 返回版本2配置(versionId=DS202501090002)
+    
+    %% 版本共存阶段
+    Note over V1,V2: 版本共存阶段开始
+    
+    Client->>Service: 发布版本2到阶段1
+    Service->>V2: 更新状态(status=PUBLISHED)
+    Service->>V2: 设置灰度组(effective_gray_groups=ap-southeast-2)
+    Service->>DB: 记录发布历史
+    
+    Note over V1,V2: 此时版本1在其他地域生效,版本2在ap-southeast-2生效
+    
+    Client->>Service: 发布版本2到阶段2
+    Service->>V2: 更新灰度组(effective_gray_groups=cn-chengdu,ap-southeast-2,cn-shanghai)
+    Service->>DB: 记录发布历史
+    
+    Note over V1,V2: 此时版本1在剩余地域生效,版本2在指定地域生效
+    
+    Client->>Service: 版本2全量发布
+    Service->>V2: 更新灰度组(effective_gray_groups=所有地域)
+    Service->>V1: 更新状态(status=DEPRECATED)
+    Service->>DB: 记录发布历史
+    
+    Note over V1,V2: 版本2完全接管,版本1废弃
+```
