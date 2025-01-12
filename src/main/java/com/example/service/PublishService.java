@@ -4,15 +4,13 @@ import com.example.enums.ConfigStatus;
 import com.example.enums.ConfigType;
 import com.example.enums.GrayStage;
 import com.example.mapper.PublishHistoryMapper;
-import com.example.model.ApiRecordConfig;
-import com.example.model.DataSourceConfig;
+import com.example.model.ConfigIdentifier;
 import com.example.model.PublishHistory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.Collections;
 
 /**
  * 配置发布服务
@@ -45,6 +43,8 @@ public class PublishService {
             dataSourceConfigService.updateStatus(versionId, ConfigStatus.PUBLISHED.name(), grayGroupsJson);
         } else if (ConfigType.API_RECORD.name().equals(configType)) {
             apiRecordConfigService.updateStatus(versionId, ConfigStatus.PUBLISHED.name(), grayGroupsJson);
+        } else if (ConfigType.API_META.name().equals(configType)) {
+            apiMetaConfigService.updateStatus(versionId, ConfigStatus.PUBLISHED.name(), grayGroupsJson);
         }
         
         recordHistory(versionId, configType, ConfigStatus.PUBLISHED.name(), grayGroupsJson, operator);
@@ -63,76 +63,14 @@ public class PublishService {
      */
     @Transactional
     public void deprecate(String versionId, String operator) {
-        // 废弃配置时不需要指定灰度组
-        dataSourceConfigService.updateStatus(versionId, ConfigStatus.DEPRECATED.name(), "");
-        apiRecordConfigService.updateStatus(versionId, ConfigStatus.DEPRECATED.name(), "");
-        apiMetaConfigService.updateStatus(versionId, ConfigStatus.DEPRECATED.name(), "");
+        // 根据版本号前缀确定配置类型
+        String configType = getConfigTypeFromVersionId(versionId);
         
-        recordHistory(versionId, ConfigType.DATA_SOURCE.name(), ConfigStatus.DEPRECATED.name(), "", operator);
-        recordHistory(versionId, ConfigType.API_RECORD.name(), ConfigStatus.DEPRECATED.name(), "", operator);
-        recordHistory(versionId, ConfigType.API_META.name(), ConfigStatus.DEPRECATED.name(), "", operator);
-    }
-
-    /**
-     * 回滚到上一个版本
-     */
-    @Transactional
-    public void rollbackToPrevious(String identifier, String configType, String operator) {
-        if (ConfigType.DATA_SOURCE.name().equals(configType)) {
-            List<DataSourceConfig> publishedConfigs = 
-                dataSourceConfigService.getPublishedByIdentifier(identifier);
-            
-            if (publishedConfigs.size() < 2) {
-                throw new RuntimeException("No previous version to rollback for source: " + identifier);
-            }
-            
-            DataSourceConfig currentConfig = publishedConfigs.get(0);
-            DataSourceConfig previousConfig = publishedConfigs.get(1);
-            
-            rollback(currentConfig.getVersionId(), previousConfig.getVersionId(), operator);
-        } else if (ConfigType.API_RECORD.name().equals(configType)) {
-            String[] parts = identifier.split(":");
-            if (parts.length != 4) {
-                throw new IllegalArgumentException("Invalid API identifier format");
-            }
-            
-            List<ApiRecordConfig> publishedConfigs = 
-                apiRecordConfigService.getPublishedByIdentifier(parts[0], parts[1], parts[2], parts[3]);
-            
-            if (publishedConfigs.size() < 2) {
-                throw new RuntimeException("No previous version to rollback for API: " + identifier);
-            }
-            
-            ApiRecordConfig currentConfig = publishedConfigs.get(0);
-            ApiRecordConfig previousConfig = publishedConfigs.get(1);
-            
-            rollback(currentConfig.getVersionId(), previousConfig.getVersionId(), operator);
-        }
-    }
-
-    /**
-     * 回滚到指定版本
-     */
-    @Transactional
-    public void rollbackToVersion(String identifier, String targetVersionId, String configType, String operator) {
-        if (ConfigType.DATA_SOURCE.name().equals(configType)) {
-            List<DataSourceConfig> publishedConfigs = 
-                dataSourceConfigService.getPublishedByIdentifier(identifier);
-            if (publishedConfigs.isEmpty()) {
-                throw new RuntimeException("No active version for source: " + identifier);
-            }
-            
-            rollback(publishedConfigs.get(0).getVersionId(), targetVersionId, operator);
-        } else if (ConfigType.API_RECORD.name().equals(configType)) {
-            String[] parts = identifier.split(":");
-            List<ApiRecordConfig> publishedConfigs = 
-                apiRecordConfigService.getPublishedByIdentifier(parts[0], parts[1], parts[2], parts[3]);
-            if (publishedConfigs.isEmpty()) {
-                throw new RuntimeException("No active version for API: " + identifier);
-            }
-            
-            rollback(publishedConfigs.get(0).getVersionId(), targetVersionId, operator);
-        }
+        // 废弃配置
+        updateConfigStatus(versionId, ConfigStatus.DEPRECATED.name(), "", configType);
+        
+        // 记录发布历史
+        recordHistory(versionId, configType, ConfigStatus.DEPRECATED.name(), "", operator);
     }
 
     /**
@@ -140,18 +78,105 @@ public class PublishService {
      */
     @Transactional
     public void rollback(String currentVersionId, String targetVersionId, String operator) {
-        // 回滚时，目标版本使用全量发布
-        dataSourceConfigService.updateStatus(currentVersionId, ConfigStatus.DEPRECATED.name(), "");
-        dataSourceConfigService.updateStatus(targetVersionId, ConfigStatus.PUBLISHED.name(), "all");
-        apiRecordConfigService.updateStatus(currentVersionId, ConfigStatus.DEPRECATED.name(), "");
-        apiRecordConfigService.updateStatus(targetVersionId, ConfigStatus.PUBLISHED.name(), "all");
+        // 根据版本号前缀确定配置类型
+        String configType = getConfigTypeFromVersionId(currentVersionId);
         
-        apiMetaConfigService.updateStatus(currentVersionId, ConfigStatus.DEPRECATED.name(), "");
-        apiMetaConfigService.updateStatus(targetVersionId, ConfigStatus.PUBLISHED.name(), "all");
+        // 废弃当前版本
+        updateConfigStatus(currentVersionId, ConfigStatus.DEPRECATED.name(), "", configType);
+        // 启用目标版本（全量发布）
+        updateConfigStatus(targetVersionId, ConfigStatus.PUBLISHED.name(), "all", configType);
         
-        recordHistory(targetVersionId, ConfigType.DATA_SOURCE.name(), ConfigStatus.PUBLISHED.name(), "all", operator);
-        recordHistory(targetVersionId, ConfigType.API_RECORD.name(), ConfigStatus.PUBLISHED.name(), "all", operator);
-        recordHistory(targetVersionId, ConfigType.API_META.name(), ConfigStatus.PUBLISHED.name(), "all", operator);
+        // 记录发布历史
+        recordHistory(targetVersionId, configType, ConfigStatus.PUBLISHED.name(), "all", operator);
+    }
+
+    /**
+     * 回滚到上一个版本
+     */
+    @Transactional
+    public void rollbackToPrevious(String identifier, String configType, String operator) {
+        List<? extends ConfigIdentifier> publishedConfigs = getPublishedConfigs(identifier, configType);
+        
+        if (publishedConfigs.size() < 2) {
+            throw new RuntimeException("No previous version to rollback for: " + identifier);
+        }
+        
+        ConfigIdentifier currentConfig = publishedConfigs.get(0);
+        ConfigIdentifier previousConfig = publishedConfigs.get(1);
+        
+        rollback(currentConfig.getVersionId(), previousConfig.getVersionId(), operator);
+    }
+
+    /**
+     * 回滚到指定版本
+     */
+    @Transactional
+    public void rollbackToVersion(String identifier, String targetVersionId, String configType, String operator) {
+        List<? extends ConfigIdentifier> publishedConfigs = getPublishedConfigs(identifier, configType);
+        
+        if (publishedConfigs.isEmpty()) {
+            throw new RuntimeException("No active version for: " + identifier);
+        }
+        
+        rollback(publishedConfigs.get(0).getVersionId(), targetVersionId, operator);
+    }
+
+    private String getConfigTypeFromVersionId(String versionId) {
+        if (versionId == null || versionId.length() < 2) {
+            throw new IllegalArgumentException("Invalid version ID: " + versionId);
+        }
+        
+        String prefix = versionId.substring(0, 2);
+        switch (prefix) {
+            case "DS":
+                return ConfigType.DATA_SOURCE.name();
+            case "AR":
+                return ConfigType.API_RECORD.name();
+            case "AM":
+                return ConfigType.API_META.name();
+            default:
+                throw new IllegalArgumentException("Unknown version ID prefix: " + prefix);
+        }
+    }
+
+    private void updateConfigStatus(String versionId, String status, String grayGroups, String configType) {
+        switch (ConfigType.valueOf(configType)) {
+            case DATA_SOURCE:
+                dataSourceConfigService.updateStatus(versionId, status, grayGroups);
+                break;
+            case API_RECORD:
+                apiRecordConfigService.updateStatus(versionId, status, grayGroups);
+                break;
+            case API_META:
+                apiMetaConfigService.updateStatus(versionId, status, grayGroups);
+                break;
+            default:
+                throw new IllegalArgumentException("Unsupported config type: " + configType);
+        }
+    }
+
+    private List<? extends ConfigIdentifier> getPublishedConfigs(String identifier, String configType) {
+        String[] parts;
+        switch (ConfigType.valueOf(configType)) {
+            case DATA_SOURCE:
+                return dataSourceConfigService.getPublishedByIdentifier(identifier);
+            case API_RECORD:
+                parts = identifier.split(":");
+                if (parts.length != 4) {
+                    throw new IllegalArgumentException("Invalid API identifier format");
+                }
+                return apiRecordConfigService.getPublishedByIdentifier(
+                    parts[0], parts[1], parts[2], parts[3]);
+            case API_META:
+                parts = identifier.split(":");
+                if (parts.length != 4) {
+                    throw new IllegalArgumentException("Invalid API identifier format");
+                }
+                return apiMetaConfigService.getPublishedByIdentifier(
+                    parts[0], parts[1], parts[2], parts[3]);
+            default:
+                throw new IllegalArgumentException("Unsupported config type: " + configType);
+        }
     }
 
     /**

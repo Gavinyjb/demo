@@ -12,4 +12,9 @@ public interface ConfigIdentifier {
      * @return 配置的唯一标识字符串
      */
     String getIdentifier();
+
+    /**
+     * 获取配置的版本ID
+     */
+    String getVersionId();
 } 
