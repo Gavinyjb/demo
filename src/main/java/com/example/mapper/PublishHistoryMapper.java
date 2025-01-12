@@ -15,4 +15,14 @@ public interface PublishHistoryMapper {
     @Select("SELECT * FROM publish_history WHERE version_id = #{versionId} " +
             "ORDER BY gmt_create DESC")
     List<PublishHistory> findByVersionId(String versionId);
+
+    @Insert("INSERT INTO publish_history (version_id, config_type, status, gray_groups, " +
+            "operator, gmt_create, gmt_modified) " +
+            "VALUES (#{versionId}, #{configType}, #{status}, #{grayGroups}, " +
+            "#{operator}, NOW(), NOW())")
+    void insertMigrationHistory(@Param("versionId") String versionId,
+                              @Param("configType") String configType,
+                              @Param("status") String status,
+                              @Param("grayGroups") String grayGroups,
+                              @Param("operator") String operator);
 } 

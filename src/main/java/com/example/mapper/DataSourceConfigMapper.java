@@ -30,7 +30,8 @@ public interface DataSourceConfigMapper {
                      @Param("effectiveGrayGroups") String effectiveGrayGroups);
 
     @Select("SELECT * FROM data_source_config WHERE status = 'PUBLISHED' " +
-            "AND effective_gray_groups LIKE CONCAT('%', #{region}, '%')")
+            "AND (effective_gray_groups = 'all' " +
+            "    OR effective_gray_groups LIKE CONCAT('%', #{region}, '%'))")
     List<DataSourceConfig> findByRegion(@Param("region") String region);
 
     /**
@@ -40,9 +41,9 @@ public interface DataSourceConfigMapper {
     @Select("SELECT * FROM data_source_config " +
             "WHERE source = #{source} " +
             "AND status = 'PUBLISHED' " +
-            "AND (effective_gray_groups LIKE CONCAT('%', #{region}, '%') " +
-            "    OR (effective_gray_groups NOT LIKE '%,%' AND effective_gray_groups IS NOT NULL)) " +
-            "ORDER BY effective_gray_groups LIKE CONCAT('%', #{region}, '%') DESC, " +
+            "AND (effective_gray_groups = 'all' " +
+            "    OR effective_gray_groups LIKE CONCAT('%', #{region}, '%')) " +
+            "ORDER BY effective_gray_groups != 'all' DESC, " +
             "gmt_modified DESC LIMIT 1")
     DataSourceConfig findActiveConfigBySourceAndRegion(@Param("source") String source, 
                                                      @Param("region") String region);
@@ -69,4 +70,17 @@ public interface DataSourceConfigMapper {
      */
     @Delete("DELETE FROM data_source_config WHERE version_id = #{versionId}")
     void deleteByVersionId(String versionId);
+
+    @Select("SELECT * FROM data_source_config WHERE version_id IS NULL")
+    List<DataSourceConfig> findConfigsWithoutVersion();
+
+    @Update("UPDATE data_source_config SET " +
+            "version_id = #{versionId}, " +
+            "status = #{status}, " +
+            "effective_gray_groups = #{grayGroups} " +
+            "WHERE id = #{id}")
+    void updateVersionInfo(@Param("id") Long id,
+                         @Param("versionId") String versionId,
+                         @Param("status") String status,
+                         @Param("grayGroups") String grayGroups);
 } 

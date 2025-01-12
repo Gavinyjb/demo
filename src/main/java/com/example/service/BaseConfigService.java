@@ -20,6 +20,9 @@ public interface BaseConfigService<T extends ConfigIdentifier> {
     
     /**
      * 更新配置状态
+     * @param versionId 版本ID
+     * @param status 状态
+     * @param grayGroups 灰度组，使用 "all" 表示全量发布
      */
     void updateStatus(String versionId, String status, String grayGroups);
     
@@ -30,6 +33,7 @@ public interface BaseConfigService<T extends ConfigIdentifier> {
     
     /**
      * 获取指定地域生效的配置
+     * 包括在指定地域灰度生效的配置和全量发布的配置
      */
     List<T> getActiveByRegion(String region);
     

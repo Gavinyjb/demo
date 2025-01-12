@@ -21,7 +21,7 @@ public enum GrayStage {
     /**
      * 全量发布：所有地域生效
      */
-    FULL(Arrays.asList("cn-hangzhou", "cn-shanghai", "ap-southeast-1", "cn-chengdu", "ap-southeast-2"));
+    FULL(Collections.singletonList("all"));
 
     private final List<String> regions;
 

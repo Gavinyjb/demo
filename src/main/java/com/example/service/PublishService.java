@@ -25,7 +25,9 @@ public class PublishService {
     
     @Autowired
     private ApiRecordConfigService apiRecordConfigService;
-    
+
+    @Autowired
+    private ApiMetaConfigService apiMetaConfigService;
     @Autowired
     private PublishHistoryMapper publishHistoryMapper;
 
@@ -34,7 +36,10 @@ public class PublishService {
      */
     @Transactional
     public void publish(String versionId, String configType, List<String> grayGroups, String operator) {
-        String grayGroupsJson = String.join(",", grayGroups);
+        // 如果是全量发布，使用 "all"
+        String grayGroupsJson = grayGroups.size() == 1 && grayGroups.get(0).equals("all") 
+            ? "all" 
+            : String.join(",", grayGroups);
         
         if (ConfigType.DATA_SOURCE.name().equals(configType)) {
             dataSourceConfigService.updateStatus(versionId, ConfigStatus.PUBLISHED.name(), grayGroupsJson);
@@ -57,14 +62,15 @@ public class PublishService {
      * 废弃配置
      */
     @Transactional
-    public void deprecate(String versionId, List<String> grayGroups, String operator) {
-        String grayGroupsJson = String.join(",", grayGroups);
+    public void deprecate(String versionId, String operator) {
+        // 废弃配置时不需要指定灰度组
+        dataSourceConfigService.updateStatus(versionId, ConfigStatus.DEPRECATED.name(), "");
+        apiRecordConfigService.updateStatus(versionId, ConfigStatus.DEPRECATED.name(), "");
+        apiMetaConfigService.updateStatus(versionId, ConfigStatus.DEPRECATED.name(), "");
         
-        dataSourceConfigService.updateStatus(versionId, ConfigStatus.DEPRECATED.name(), grayGroupsJson);
-        apiRecordConfigService.updateStatus(versionId, ConfigStatus.DEPRECATED.name(), grayGroupsJson);
-        
-        recordHistory(versionId, ConfigType.DATA_SOURCE.name(), ConfigStatus.DEPRECATED.name(), grayGroupsJson, operator);
-        recordHistory(versionId, ConfigType.API_RECORD.name(), ConfigStatus.DEPRECATED.name(), grayGroupsJson, operator);
+        recordHistory(versionId, ConfigType.DATA_SOURCE.name(), ConfigStatus.DEPRECATED.name(), "", operator);
+        recordHistory(versionId, ConfigType.API_RECORD.name(), ConfigStatus.DEPRECATED.name(), "", operator);
+        recordHistory(versionId, ConfigType.API_META.name(), ConfigStatus.DEPRECATED.name(), "", operator);
     }
 
     /**
@@ -83,7 +89,7 @@ public class PublishService {
             DataSourceConfig currentConfig = publishedConfigs.get(0);
             DataSourceConfig previousConfig = publishedConfigs.get(1);
             
-            rollback(currentConfig.getVersionId(), previousConfig.getVersionId(), Collections.emptyList(), operator);
+            rollback(currentConfig.getVersionId(), previousConfig.getVersionId(), operator);
         } else if (ConfigType.API_RECORD.name().equals(configType)) {
             String[] parts = identifier.split(":");
             if (parts.length != 4) {
@@ -100,7 +106,7 @@ public class PublishService {
             ApiRecordConfig currentConfig = publishedConfigs.get(0);
             ApiRecordConfig previousConfig = publishedConfigs.get(1);
             
-            rollback(currentConfig.getVersionId(), previousConfig.getVersionId(), Collections.emptyList(), operator);
+            rollback(currentConfig.getVersionId(), previousConfig.getVersionId(), operator);
         }
     }
 
@@ -116,7 +122,7 @@ public class PublishService {
                 throw new RuntimeException("No active version for source: " + identifier);
             }
             
-            rollback(publishedConfigs.get(0).getVersionId(), targetVersionId, Collections.emptyList(), operator);
+            rollback(publishedConfigs.get(0).getVersionId(), targetVersionId, operator);
         } else if (ConfigType.API_RECORD.name().equals(configType)) {
             String[] parts = identifier.split(":");
             List<ApiRecordConfig> publishedConfigs = 
@@ -125,7 +131,7 @@ public class PublishService {
                 throw new RuntimeException("No active version for API: " + identifier);
             }
             
-            rollback(publishedConfigs.get(0).getVersionId(), targetVersionId, Collections.emptyList(), operator);
+            rollback(publishedConfigs.get(0).getVersionId(), targetVersionId, operator);
         }
     }
 
@@ -133,18 +139,19 @@ public class PublishService {
      * 回滚配置
      */
     @Transactional
-    public void rollback(String currentVersionId, String targetVersionId, List<String> grayGroups, String operator) {
-        String grayGroupsJson = String.join(",", grayGroups);
-        
-        // 处理数据源配置回滚
+    public void rollback(String currentVersionId, String targetVersionId, String operator) {
+        // 回滚时，目标版本使用全量发布
         dataSourceConfigService.updateStatus(currentVersionId, ConfigStatus.DEPRECATED.name(), "");
-        dataSourceConfigService.updateStatus(targetVersionId, ConfigStatus.PUBLISHED.name(), grayGroupsJson);
-        recordHistory(targetVersionId, ConfigType.DATA_SOURCE.name(), ConfigStatus.PUBLISHED.name(), grayGroupsJson, operator);
-        
-        // 处理API记录配置回滚
+        dataSourceConfigService.updateStatus(targetVersionId, ConfigStatus.PUBLISHED.name(), "all");
         apiRecordConfigService.updateStatus(currentVersionId, ConfigStatus.DEPRECATED.name(), "");
-        apiRecordConfigService.updateStatus(targetVersionId, ConfigStatus.PUBLISHED.name(), grayGroupsJson);
-        recordHistory(targetVersionId, ConfigType.API_RECORD.name(), ConfigStatus.PUBLISHED.name(), grayGroupsJson, operator);
+        apiRecordConfigService.updateStatus(targetVersionId, ConfigStatus.PUBLISHED.name(), "all");
+        
+        apiMetaConfigService.updateStatus(currentVersionId, ConfigStatus.DEPRECATED.name(), "");
+        apiMetaConfigService.updateStatus(targetVersionId, ConfigStatus.PUBLISHED.name(), "all");
+        
+        recordHistory(targetVersionId, ConfigType.DATA_SOURCE.name(), ConfigStatus.PUBLISHED.name(), "all", operator);
+        recordHistory(targetVersionId, ConfigType.API_RECORD.name(), ConfigStatus.PUBLISHED.name(), "all", operator);
+        recordHistory(targetVersionId, ConfigType.API_META.name(), ConfigStatus.PUBLISHED.name(), "all", operator);
     }
 
     /**

@@ -38,9 +38,9 @@ public interface ApiRecordConfigMapper {
             "AND api_version = #{apiVersion} " +
             "AND api_name = #{apiName} " +
             "AND status = 'PUBLISHED' " +
-            "AND (effective_gray_groups LIKE CONCAT('%', #{region}, '%') " +
-            "    OR (effective_gray_groups NOT LIKE '%,%' AND effective_gray_groups IS NOT NULL)) " +
-            "ORDER BY effective_gray_groups LIKE CONCAT('%', #{region}, '%') DESC, " +
+            "AND (effective_gray_groups = 'all' " +
+            "    OR effective_gray_groups LIKE CONCAT('%', #{region}, '%')) " +
+            "ORDER BY effective_gray_groups != 'all' DESC, " +
             "gmt_modified DESC LIMIT 1")
     ApiRecordConfig findActiveConfigByIdentifierAndRegion(@Param("gatewayType") String gatewayType,
                                                         @Param("gatewayCode") String gatewayCode,
@@ -68,7 +68,8 @@ public interface ApiRecordConfigMapper {
      */
     @Select("SELECT * FROM api_record_config " +
             "WHERE status = 'PUBLISHED' " +
-            "AND effective_gray_groups LIKE CONCAT('%', #{region}, '%')")
+            "AND (effective_gray_groups = 'all' " +
+            "    OR effective_gray_groups LIKE CONCAT('%', #{region}, '%'))")
     List<ApiRecordConfig> findByRegion(@Param("region") String region);
 
     /**

@@ -50,9 +50,8 @@ public class PublishController {
     public ResponseEntity<Void> rollback(
             @RequestParam String currentVersionId,
             @RequestParam String targetVersionId,
-            @RequestParam String operator,
-            @RequestBody List<String> grayGroups) {
-        publishService.rollback(currentVersionId, targetVersionId, grayGroups, operator);
+            @RequestParam String operator) {
+        publishService.rollback(currentVersionId, targetVersionId, operator);
         return ResponseEntity.ok().build();
     }
 
@@ -60,9 +59,8 @@ public class PublishController {
     @Operation(summary = "废弃配置")
     public ResponseEntity<Void> deprecate(
             @RequestParam String versionId,
-            @RequestParam String operator,
-            @RequestBody List<String> grayGroups) {
-        publishService.deprecate(versionId, grayGroups, operator);
+            @RequestParam String operator) {
+        publishService.deprecate(versionId, operator);
         return ResponseEntity.ok().build();
     }
 
