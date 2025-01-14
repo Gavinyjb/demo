@@ -1,5 +1,94 @@
 # 数据模型
 
+
+ER 关系图
+```mermaid
+erDiagram
+    BaseVersionedConfig ||--|| data_source_config : "extends"
+    BaseVersionedConfig ||--|| api_record_config : "extends"
+    BaseVersionedConfig ||--|| api_meta_config : "extends"
+    
+    data_source_config ||--o{ publish_history : "has"
+    api_record_config ||--o{ publish_history : "has"
+    api_meta_config ||--o{ publish_history : "has"
+
+    BaseVersionedConfig {
+        bigint id PK
+        varchar version_id UK
+        varchar status
+        text effective_gray_groups
+        datetime gmt_create
+        datetime gmt_modified
+    }
+
+    data_source_config {
+        bigint id PK
+        bigint at_work_id
+        varchar source
+        varchar source_group
+        varchar gateway_type
+        varchar dm
+        varchar loghub_endpoint
+        varchar loghub_project
+        varchar loghub_stream
+        varchar loghub_accesskey_id
+        varchar loghub_accesskey_secret
+        varchar loghub_assume_role_arn
+        varchar loghub_cursor
+        text consume_region
+        int data_fetch_interval_millis
+    }
+
+    api_record_config {
+        bigint id PK
+        varchar gateway_type
+        varchar gateway_code
+        varchar api_version
+        varchar api_name
+        varchar loghub_stream
+        text basic_config
+        text event_config
+        text user_identity_config
+        text request_config
+        text response_config
+        text filter_config
+        text reference_resource_config
+        varchar type
+    }
+
+    api_meta_config {
+        bigint id PK
+        varchar api_name
+        varchar product
+        varchar gateway_type
+        varchar dm
+        varchar gateway_code
+        varchar api_version
+        varchar actiontrail_code
+        varchar operation_type
+        text description
+        varchar visibility
+        varchar isolation_type
+        varchar service_type
+        boolean response_body_log
+        varchar invoke_type
+        text resource_spec
+        varchar effective_flag
+        varchar audit_status
+    }
+
+    publish_history {
+        bigint id PK
+        varchar version_id FK
+        varchar config_type
+        varchar status
+        text gray_groups
+        varchar operator
+        datetime gmt_create
+        datetime gmt_modified
+    }
+```
+
 ```mermaid
 erDiagram
     data_source_config {
@@ -177,4 +266,80 @@ sequenceDiagram
     Service->>DB: 记录发布历史
     
     Note over V1,V2: 版本2完全接管,版本1废弃
+```
+
+### 发布接口
+
+#### 发布配置
+
+```
+POST /api/publish
+```
+
+#### 按照阶段发布配置
+
+```
+POST /api/publish/stage
+```
+
+#### 回滚配置
+
+```
+POST /api/publish/rollback
+```
+
+#### 废弃配置
+
+```
+POST /api/publish/deprecate
+```
+
+#### 回滚到上一个版本
+
+```
+POST /api/publish/rollback/previous
+```
+
+#### 获取发布历史
+
+```
+GET /api/publish/history
+```
+
+#### 获取所有灰度阶段配置
+
+```
+GET /api/publish/stage
+```
+
+### 数据源配置接口
+
+#### 创建数据源配置
+
+```
+POST /api/config/create
+```
+
+#### 更新数据源配置
+
+```
+POST /api/config/update
+```
+
+#### 获取当前地域生效的所有数据源配置
+
+```
+GET /api/config/active
+```
+
+#### 获取指定source的所有已发布数据源配置
+
+```
+GET /api/config/published
+```
+
+#### 获取指定source在指定地域生效的数据源配置
+
+```
+GET /api/config/active
 ```
