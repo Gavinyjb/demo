@@ -343,3 +343,71 @@ GET /api/config/published
 ```
 GET /api/config/active
 ```
+
+
+## API 接口文档
+
+### 1. 数据源配置接口
+| 接口描述 | 请求方式 | 接口路径 |
+|---------|---------|---------|
+| 创建数据源配置 | POST | /api/datasource |
+| 更新数据源配置 | PUT | /api/datasource/{versionId} |
+| 获取当前地域的数据源配置 | GET | /api/datasource/current-region |
+| 获取指定地域的数据源配置 | GET | /api/datasource/region/{region} |
+| 获取指定source在当前地域生效的配置 | GET | /api/datasource/{source}/active |
+| 获取指定source的所有已发布配置 | GET | /api/datasource/{source}/published |
+| 获取指定source在指定地域的生效配置 | GET | /api/datasource/{source}/region/{region} |
+
+### 2. API记录配置接口
+| 接口描述 | 请求方式 | 接口路径 |
+|---------|---------|---------|
+| 创建API记录配置 | POST | /api/api-record |
+| 更新API记录配置 | PUT | /api/api-record/{versionId} |
+| 获取所有已发布的API记录配置 | GET | /api/api-record/published/all |
+| 获取指定地域的API记录配置 | GET | /api/api-record/region/{region} |
+| 获取指定API在指定地域生效的配置 | GET | /api/api-record/active |
+| 获取指定API的所有已发布配置 | GET | /api/api-record/published |
+
+### 3. API Meta配置接口
+| 接口描述 | 请求方式 | 接口路径 |
+|---------|---------|---------|
+| 创建API Meta配置 | POST | /api/api-meta |
+| 更新API Meta配置 | PUT | /api/api-meta/{versionId} |
+| 获取所有已发布的API Meta配置 | GET | /api/api-meta/published/all |
+| 获取指定地域的API Meta配置 | GET | /api/api-meta/region/{region} |
+| 获取指定API在指定地域生效的配置 | GET | /api/api-meta/active |
+| 获取指定API的所有已发布配置 | GET | /api/api-meta/published |
+| 根据版本ID查询配置 | GET | /api/api-meta/version/{versionId} |
+
+### 4. 配置发布接口
+| 接口描述 | 请求方式 | 接口路径 |
+|---------|---------|---------|
+| 发布配置 | POST | /api/publish |
+| 按阶段发布配置 | POST | /api/publish/stage |
+| 回滚配置 | POST | /api/publish/rollback |
+| 废弃配置 | POST | /api/publish/deprecate |
+| 获取发布历史 | GET | /api/publish/history/{versionId} |
+| 获取所有灰度阶段信息 | GET | /api/publish/stages |
+
+## 灰度发布阶段说明
+- **阶段1 (STAGE_1)**: 仅在 ap-southeast-2 生效
+- **阶段2 (STAGE_2)**: 在 cn-chengdu、ap-southeast-2、cn-shanghai 生效
+- **全量发布 (FULL)**: 在所有地域生效，使用 "all" 标识
+
+## 配置状态说明
+- **DRAFT**: 草稿状态，新建或修改后的配置状态
+- **PUBLISHED**: 已发布状态，配置已发布到一个或多个灰度组
+- **DEPRECATED**: 已废弃状态，配置已被废弃或被新版本替代
+
+## 版本号规则
+- 数据源配置：DS + 年月日 + 4位序号，如：DS202401150001
+- API记录配置：AR + 年月日 + 4位序号，如：AR202401150001
+- API Meta配置：AM + 年月日 + 4位序号，如：AM202401150001
+
+## 支持的地域列表
+- cn-hangzhou
+- cn-shanghai
+- ap-southeast-1
+- cn-chengdu
+- ap-southeast-2
+- ...
