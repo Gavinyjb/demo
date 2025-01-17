@@ -3,6 +3,8 @@ package com.example.controller;
 import com.example.model.DataSourceConfig;
 import com.example.service.DataSourceConfigService;
 import com.example.util.RegionProvider;
+import com.example.dto.ConfigDiffRequest;
+import com.example.dto.ConfigDiffResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -79,5 +81,11 @@ public class DataSourceConfigController {
             @PathVariable String region) {
         return ResponseEntity.ok(
             dataSourceConfigService.getActiveBySourceAndRegion(source, region));
+    }
+
+    @PostMapping("/diff")
+    @Operation(summary = "获取配置变更信息")
+    public ResponseEntity<ConfigDiffResponse> getConfigDiff(@RequestBody ConfigDiffRequest request) {
+        return ResponseEntity.ok(dataSourceConfigService.getConfigDiff(request));
     }
 } 

@@ -83,4 +83,31 @@ public interface DataSourceConfigMapper {
                          @Param("versionId") String versionId,
                          @Param("status") String status,
                          @Param("grayGroups") String grayGroups);
+
+    /**
+     * 查询指定地域下所有生效的配置
+     */
+    @Select("SELECT * FROM data_source_config " +
+            "WHERE status = 'PUBLISHED' " +
+            "AND (effective_gray_groups = 'all' " +
+            "    OR effective_gray_groups LIKE CONCAT('%', #{region}, '%')) " +
+            "ORDER BY gmt_modified DESC")
+    List<DataSourceConfig> findActiveConfigsByRegion(@Param("region") String region);
+    
+    /**
+     * 查询指定版本列表中已失效的配置
+     */
+    @Select("<script>" +
+            "SELECT version_id FROM data_source_config " +
+            "WHERE version_id IN " +
+            "<foreach item='item' collection='versionIds' open='(' separator=',' close=')'>" +
+            "#{item}" +
+            "</foreach>" +
+            "AND (status = 'DEPRECATED' " +
+            "    OR (status = 'PUBLISHED' " +
+            "        AND effective_gray_groups != 'all' " +
+            "        AND effective_gray_groups NOT LIKE CONCAT('%', #{region}, '%')))" +
+            "</script>")
+    List<String> findDeprecatedVersions(@Param("versionIds") List<String> versionIds,
+                                      @Param("region") String region);
 } 

@@ -6,10 +6,15 @@ import com.example.enums.ConfigStatus;
 import com.example.util.RegionProvider;
 import com.example.util.VersionGenerator;
 import com.example.config.VersionProperties;
+import com.example.dto.ConfigDiffRequest;
+import com.example.dto.ConfigDiffResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
+import java.util.Set;
+import java.util.HashSet;
+import java.util.stream.Collectors;
 
 /**
  * 数据源配置服务
@@ -130,5 +135,36 @@ public class DataSourceConfigService implements BaseConfigService<DataSourceConf
                 .skip(versionProperties.getMaxDatasourceVersions())
                 .forEach(config -> dataSourceConfigMapper.deleteByVersionId(config.getVersionId()));
         }
+    }
+
+    /**
+     * 获取配置变更信息
+     */
+    public ConfigDiffResponse getConfigDiff(ConfigDiffRequest request) {
+        if (!regionProvider.isRegionSupported(request.getRegion())) {
+            throw new IllegalArgumentException("Unsupported region: " + request.getRegion());
+        }
+        
+        // 获取当前所有生效的配置
+        List<DataSourceConfig> currentConfigs = dataSourceConfigMapper.findActiveConfigsByRegion(request.getRegion());
+        
+        // 获取已失效的版本
+        List<String> deprecatedVersionIds = dataSourceConfigMapper.findDeprecatedVersions(
+            request.getVersionIds(), 
+            request.getRegion()
+        );
+        
+        // 找出新增或更新的配置
+        Set<String> oldVersions = new HashSet<>(request.getVersionIds());
+        List<DataSourceConfig> updatedConfigs = currentConfigs.stream()
+            .filter(config -> !oldVersions.contains(config.getVersionId()))
+            .collect(Collectors.toList());
+        
+        // 构建响应
+        ConfigDiffResponse response = new ConfigDiffResponse();
+        response.setUpdatedConfigs(updatedConfigs);
+        response.setDeprecatedVersionIds(deprecatedVersionIds);
+        
+        return response;
     }
 } 

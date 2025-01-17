@@ -344,8 +344,11 @@ GET /api/config/published
 GET /api/config/active
 ```
 
+#### 获取配置变更信息
 
-## API 接口文档
+```
+POST /api/datasource/diff
+```
 
 ### 1. 数据源配置接口
 | 接口描述 | 请求方式 | 接口路径 |
@@ -357,6 +360,7 @@ GET /api/config/active
 | 获取指定source在当前地域生效的配置 | GET | /api/datasource/{source}/active |
 | 获取指定source的所有已发布配置 | GET | /api/datasource/{source}/published |
 | 获取指定source在指定地域的生效配置 | GET | /api/datasource/{source}/region/{region} |
+| 获取配置变更信息 | POST | /api/datasource/diff |
 
 ### 2. API记录配置接口
 | 接口描述 | 请求方式 | 接口路径 |
