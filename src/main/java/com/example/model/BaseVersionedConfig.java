@@ -11,8 +11,8 @@ import java.time.LocalDateTime;
 public abstract class BaseVersionedConfig implements ConfigIdentifier {
     private Long id;
     private String versionId;
-    private String status;
-    private String effectiveGrayGroups;
+    private String status;  // DRAFT|PUBLISHED|DEPRECATED
+    private String effectiveGrayGroups;  // STAGE_1|STAGE_2|FULL
     private LocalDateTime gmtCreate;
     private LocalDateTime gmtModified;
 } 

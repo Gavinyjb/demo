@@ -8,7 +8,6 @@ public class ApiRecordConfig extends BaseVersionedConfig {
     private String gatewayCode;
     private String apiVersion;
     private String apiName;
-    private String loghubStream;
     private String basicConfig;
     private String eventConfig;
     private String userIdentityConfig;
@@ -16,7 +15,6 @@ public class ApiRecordConfig extends BaseVersionedConfig {
     private String responseConfig;
     private String filterConfig;
     private String referenceResourceConfig;
-    private String type;
 
     @Override
     public String getIdentifier() {

@@ -31,21 +31,22 @@ public interface ApiMetaConfigMapper {
                      @Param("status") String status,
                      @Param("effectiveGrayGroups") String effectiveGrayGroups);
 
-    @Select("SELECT * FROM api_meta_config " +
+    @Select("SELECT * FROM amp_api_meta " +
             "WHERE gateway_type = #{gatewayType} " +
             "AND gateway_code = #{gatewayCode} " +
             "AND api_version = #{apiVersion} " +
             "AND api_name = #{apiName} " +
             "AND status = 'PUBLISHED' " +
-            "AND (effective_gray_groups = 'all' " +
-            "    OR effective_gray_groups LIKE CONCAT('%', #{region}, '%')) " +
-            "ORDER BY effective_gray_groups != 'all' DESC, " +
+            "AND (effective_gray_groups = 'FULL' " +
+            "    OR effective_gray_groups = #{stage}) " +
+            "ORDER BY effective_gray_groups != 'FULL' DESC, " +
             "gmt_modified DESC LIMIT 1")
-    ApiMetaConfig findActiveConfigByIdentifierAndRegion(@Param("gatewayType") String gatewayType,
-                                                      @Param("gatewayCode") String gatewayCode,
-                                                      @Param("apiVersion") String apiVersion,
-                                                      @Param("apiName") String apiName,
-                                                      @Param("region") String region);
+    ApiMetaConfig findActiveConfigByIdentifierAndRegion(
+        @Param("gatewayType") String gatewayType,
+        @Param("gatewayCode") String gatewayCode,
+        @Param("apiVersion") String apiVersion,
+        @Param("apiName") String apiName,
+        @Param("stage") String stage);
 
     @Select("SELECT * FROM api_meta_config " +
             "WHERE gateway_type = #{gatewayType} " +

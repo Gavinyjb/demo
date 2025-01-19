@@ -4,20 +4,18 @@ import lombok.Data;
 
 @Data
 public class DataSourceConfig extends BaseVersionedConfig {
-    private Long atWorkId;
     private String source;
     private String sourceGroup;
     private String gatewayType;
-    private String dm;
-    private String loghubEndpoint;
-    private String loghubProject;
-    private String loghubStream;
-    private String loghubAccesskeyId;
-    private String loghubAccesskeySecret;
-    private String loghubAssumeRoleArn;
-    private String loghubCursor;
+    private String dm;  // 数据|管控
+    private String slsEndpoint;
+    private String slsProject;
+    private String slsLogstore;
+    private String slsAccountId;
+    private String slsAssumeRoleArn;
+    private String slsCursor;
     private String consumeRegion;
-    private Integer dataFetchIntervalMillis;
+    private String workerConfig;  // JSON格式: {fetchIntervalMillis, maxFetchLogGroupSize|actiontrail_work_id}
 
     @Override
     public String getIdentifier() {
