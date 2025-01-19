@@ -1,5 +1,7 @@
 package com.example.service;
 
+import com.example.dto.ConfigDiffRequest;
+import com.example.dto.ConfigDiffResponse;
 import com.example.model.ApiMetaConfig;
 import com.example.mapper.ApiMetaConfigMapper;
 import com.example.enums.ConfigStatus;
@@ -11,6 +13,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
+import java.util.Set;
+import java.util.HashSet;
+import java.util.stream.Collectors;
 
 /**
  * API Meta配置服务
@@ -125,5 +130,33 @@ public class ApiMetaConfigService implements BaseConfigService<ApiMetaConfig> {
                 .skip(versionProperties.getMaxApiMetaVersions())
                 .forEach(c -> apiMetaConfigMapper.deleteByVersionId(c.getVersionId()));
         }
+    }
+
+    /**
+     * 获取配置变更信息
+     */
+    public ConfigDiffResponse<ApiMetaConfig> getConfigDiff(ConfigDiffRequest request) {
+        String stage = regionProvider.getStageByRegion(request.getRegion());
+        
+        // 获取当前所有生效的配置
+        List<ApiMetaConfig> currentConfigs = apiMetaConfigMapper.findByStage(stage);
+        
+        // 找出新增或更新的配置
+        Set<String> oldVersions = new HashSet<>(request.getVersionIds());
+        List<ApiMetaConfig> updatedConfigs = currentConfigs.stream()
+            .filter(config -> !oldVersions.contains(config.getVersionId()))
+            .collect(Collectors.toList());
+        
+        // 找出已失效的版本
+        List<String> deprecatedVersionIds = request.getVersionIds().stream()
+            .filter(versionId -> currentConfigs.stream()
+                .noneMatch(config -> config.getVersionId().equals(versionId)))
+            .collect(Collectors.toList());
+        
+        // 构建响应
+        return ConfigDiffResponse.<ApiMetaConfig>builder()
+            .updatedConfigs(updatedConfigs)
+            .deprecatedVersionIds(deprecatedVersionIds)
+            .build();
     }
 } 

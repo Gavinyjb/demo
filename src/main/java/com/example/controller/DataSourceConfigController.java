@@ -95,7 +95,7 @@ public class DataSourceConfigController {
      */
     @PostMapping("/diff")
     @Operation(summary = "获取配置变更信息")
-    public ConfigDiffResponse getConfigDiff(@RequestBody ConfigDiffRequest request) {
+    public ConfigDiffResponse<DataSourceConfig> getConfigDiff(@RequestBody ConfigDiffRequest request) {
         return dataSourceConfigService.getConfigDiff(request);
     }
 } 

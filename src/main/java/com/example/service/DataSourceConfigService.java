@@ -128,7 +128,7 @@ public class DataSourceConfigService implements BaseConfigService<DataSourceConf
     /**
      * 获取配置变更信息
      */
-    public ConfigDiffResponse getConfigDiff(ConfigDiffRequest request) {
+    public ConfigDiffResponse<DataSourceConfig> getConfigDiff(ConfigDiffRequest request) {
         String stage = regionProvider.getStageByRegion(request.getRegion());
         
         // 获取当前所有生效的配置
@@ -147,7 +147,7 @@ public class DataSourceConfigService implements BaseConfigService<DataSourceConf
             .collect(Collectors.toList());
         
         // 构建响应
-        return ConfigDiffResponse.builder()
+        return ConfigDiffResponse.<DataSourceConfig>builder()
             .updatedConfigs(updatedConfigs)
             .deprecatedVersionIds(deprecatedVersionIds)
             .build();
