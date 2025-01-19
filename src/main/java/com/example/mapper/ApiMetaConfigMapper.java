@@ -6,76 +6,78 @@ import java.util.List;
 
 @Mapper
 public interface ApiMetaConfigMapper {
-    @Insert("INSERT INTO api_meta_config (version_id, api_name, product, gateway_type, dm, " +
+    @Insert("INSERT INTO amp_api_meta (" +
+            "version_id, api_name, product, gateway_type, dm, " +
             "gateway_code, api_version, actiontrail_code, operation_type, description, " +
             "visibility, isolation_type, service_type, response_body_log, invoke_type, " +
-            "resource_spec, status, effective_gray_groups, effective_flag, audit_status, " +
+            "resource_spec, effective_flag, audit_status, " +
             "gmt_create, gmt_modified) " +
             "VALUES (#{versionId}, #{apiName}, #{product}, #{gatewayType}, #{dm}, " +
             "#{gatewayCode}, #{apiVersion}, #{actiontrailCode}, #{operationType}, #{description}, " +
             "#{visibility}, #{isolationType}, #{serviceType}, #{responseBodyLog}, #{invokeType}, " +
-            "#{resourceSpec}, #{status}, #{effectiveGrayGroups}, #{effectiveFlag}, #{auditStatus}, " +
+            "#{resourceSpec}, #{effectiveFlag}, #{auditStatus}, " +
             "NOW(), NOW())")
-    void insert(ApiMetaConfig config);
+    void insertApiMeta(ApiMetaConfig config);
 
-    @Select("SELECT * FROM api_meta_config WHERE version_id = #{versionId}")
+    @Insert("INSERT INTO config_version (" +
+            "version_id, identifier, config_type, status, " +
+            "gmt_create, gmt_modified) " +
+            "VALUES (#{versionId}, #{identifier}, 'API_META', #{status}, " +
+            "NOW(), NOW())")
+    void insertVersion(ApiMetaConfig config);
+
+    @Select("SELECT m.*, v.status " +
+            "FROM amp_api_meta m " +
+            "INNER JOIN config_version v ON m.version_id = v.version_id " +
+            "WHERE m.version_id = #{versionId}")
     ApiMetaConfig findByVersionId(String versionId);
 
-    @Select("SELECT * FROM api_meta_config WHERE status = 'PUBLISHED'")
+    @Select("SELECT m.*, v.status " +
+            "FROM amp_api_meta m " +
+            "INNER JOIN config_version v ON m.version_id = v.version_id " +
+            "WHERE v.status = 'PUBLISHED'")
     List<ApiMetaConfig> findAllPublished();
 
-    @Update("UPDATE api_meta_config SET status = #{status}, " +
-            "effective_gray_groups = #{effectiveGrayGroups}, gmt_modified = NOW() " +
-            "WHERE version_id = #{versionId}")
-    void updateStatus(@Param("versionId") String versionId,
-                     @Param("status") String status,
-                     @Param("effectiveGrayGroups") String effectiveGrayGroups);
+    @Select("SELECT m.*, v.status " +
+            "FROM amp_api_meta m " +
+            "INNER JOIN config_version v ON m.version_id = v.version_id " +
+            "LEFT JOIN config_gray_release g ON v.version_id = g.version_id " +
+            "WHERE v.identifier = #{identifier} " +
+            "AND v.status = 'PUBLISHED' " +
+            "AND (g.stage = #{stage} OR g.stage = 'FULL') " +
+            "ORDER BY g.stage = 'FULL' DESC, v.gmt_modified DESC " +
+            "LIMIT 1")
+    ApiMetaConfig findActiveConfigByIdentifierAndStage(
+        @Param("identifier") String identifier,
+        @Param("stage") String stage
+    );
 
-    @Select("SELECT * FROM amp_api_meta " +
-            "WHERE gateway_type = #{gatewayType} " +
-            "AND gateway_code = #{gatewayCode} " +
-            "AND api_version = #{apiVersion} " +
-            "AND api_name = #{apiName} " +
-            "AND status = 'PUBLISHED' " +
-            "AND (effective_gray_groups = 'FULL' " +
-            "    OR effective_gray_groups = #{stage}) " +
-            "ORDER BY effective_gray_groups != 'FULL' DESC, " +
-            "gmt_modified DESC LIMIT 1")
-    ApiMetaConfig findActiveConfigByIdentifierAndRegion(
-        @Param("gatewayType") String gatewayType,
-        @Param("gatewayCode") String gatewayCode,
-        @Param("apiVersion") String apiVersion,
-        @Param("apiName") String apiName,
-        @Param("stage") String stage);
+    @Select("SELECT m.*, v.status " +
+            "FROM amp_api_meta m " +
+            "INNER JOIN config_version v ON m.version_id = v.version_id " +
+            "WHERE v.identifier = #{identifier} " +
+            "AND v.status = 'PUBLISHED' " +
+            "ORDER BY v.gmt_modified DESC")
+    List<ApiMetaConfig> findPublishedConfigsByIdentifier(@Param("identifier") String identifier);
 
-    @Select("SELECT * FROM api_meta_config " +
-            "WHERE gateway_type = #{gatewayType} " +
-            "AND gateway_code = #{gatewayCode} " +
-            "AND api_version = #{apiVersion} " +
-            "AND api_name = #{apiName} " +
-            "AND status = 'PUBLISHED' " +
-            "ORDER BY gmt_modified DESC")
-    List<ApiMetaConfig> findPublishedConfigsByIdentifier(@Param("gatewayType") String gatewayType,
-                                                       @Param("gatewayCode") String gatewayCode,
-                                                       @Param("apiVersion") String apiVersion,
-                                                       @Param("apiName") String apiName);
+    @Update("UPDATE config_version SET status = #{status} WHERE version_id = #{versionId}")
+    void updateVersionStatus(@Param("versionId") String versionId, @Param("status") String status);
 
-    @Select("SELECT * FROM api_meta_config WHERE status = 'PUBLISHED' " +
-            "AND (effective_gray_groups = 'all' " +
-            "    OR effective_gray_groups LIKE CONCAT('%', #{region}, '%'))")
-    List<ApiMetaConfig> findByRegion(@Param("region") String region);
+    @Insert("INSERT INTO config_gray_release (version_id, stage) VALUES (#{versionId}, #{stage})")
+    void insertGrayRelease(@Param("versionId") String versionId, @Param("stage") String stage);
 
-    @Select("SELECT * FROM api_meta_config " +
-            "WHERE gateway_type = #{gatewayType} " +
-            "AND gateway_code = #{gatewayCode} " +
-            "AND api_version = #{apiVersion} " +
-            "AND api_name = #{apiName} " +
-            "ORDER BY gmt_modified DESC")
-    List<ApiMetaConfig> findAllVersionsByIdentifier(@Param("gatewayType") String gatewayType,
-                                                  @Param("gatewayCode") String gatewayCode,
-                                                  @Param("apiVersion") String apiVersion,
-                                                  @Param("apiName") String apiName);
-
-    @Delete("DELETE FROM api_meta_config WHERE version_id = #{versionId}")
+    @Delete("DELETE m, v, g " +
+            "FROM amp_api_meta m " +
+            "LEFT JOIN config_version v ON m.version_id = v.version_id " +
+            "LEFT JOIN config_gray_release g ON v.version_id = g.version_id " +
+            "WHERE m.version_id = #{versionId}")
     void deleteByVersionId(String versionId);
+
+    @Select("SELECT m.*, v.status " +
+            "FROM amp_api_meta m " +
+            "INNER JOIN config_version v ON m.version_id = v.version_id " +
+            "LEFT JOIN config_gray_release g ON v.version_id = g.version_id " +
+            "WHERE v.status = 'PUBLISHED' " +
+            "AND (g.stage = #{stage} OR g.stage = 'FULL')")
+    List<ApiMetaConfig> findByStage(@Param("stage") String stage);
 } 

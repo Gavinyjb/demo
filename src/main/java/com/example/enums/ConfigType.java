@@ -5,17 +5,26 @@ package com.example.enums;
  */
 public enum ConfigType {
     /**
-     * 数据源配置：包含数据源连接信息和相关配置
+     * 数据源配置
      */
     DATA_SOURCE,
-    
+
     /**
-     * API记录配置：包含API处理和记录相关的配置
+     * API记录配置
      */
     API_RECORD,
 
     /**
-     * API元数据配置：包含API元数据相关的配置
+     * API元数据配置
      */
-    API_META
+    API_META;
+
+    public static boolean contains(String type) {
+        try {
+            valueOf(type);
+            return true;
+        } catch (IllegalArgumentException e) {
+            return false;
+        }
+    }
 } 

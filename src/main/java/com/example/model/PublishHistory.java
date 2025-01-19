@@ -1,15 +1,21 @@
 package com.example.model;
 
-import lombok.Data;
-import java.time.LocalDateTime;
 
+import java.time.LocalDateTime;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
+
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 @Data
 public class PublishHistory {
-    private Long id;
     private String versionId;
-    private String configType;
-    private String status;
-    private String grayGroups;
+    private String configType;  // DATA_SOURCE|API_RECORD|API_META
+    private String status;      // DRAFT|PUBLISHED|DEPRECATED
+    private String stage;       // STAGE_1|STAGE_2|FULL
     private String operator;
     private LocalDateTime gmtCreate;
     private LocalDateTime gmtModified;

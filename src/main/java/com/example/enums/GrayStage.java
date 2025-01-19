@@ -11,7 +11,7 @@ public enum GrayStage {
     /**
      * 阶段1：仅在 ap-southeast-2 生效
      */
-    STAGE_1(Collections.singletonList("ap-southeast-2")),
+    STAGE_1(Arrays.asList("ap-southeast-2")),
 
     /**
      * 阶段2：在 cn-chengdu、ap-southeast-2、cn-shanghai 生效
@@ -21,7 +21,7 @@ public enum GrayStage {
     /**
      * 全量发布：所有地域生效
      */
-    FULL(Collections.singletonList("all"));
+    FULL(Arrays.asList("cn-hangzhou", "cn-shanghai", "ap-southeast-1", "cn-chengdu", "ap-southeast-2"));
 
     private final List<String> regions;
 
@@ -31,5 +31,14 @@ public enum GrayStage {
 
     public List<String> getRegions() {
         return regions;
+    }
+
+    public static boolean contains(String stage) {
+        try {
+            valueOf(stage);
+            return true;
+        } catch (IllegalArgumentException e) {
+            return false;
+        }
     }
 } 

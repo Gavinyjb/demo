@@ -5,19 +5,28 @@ package com.example.enums;
  */
 public enum ConfigStatus {
     /**
-     * 草稿状态：新建或修改后的配置状态
+     * 草稿状态
      */
     DRAFT,
     
     /**
-     * 已发布状态：配置已发布到一个或多个灰度组
+     * 已发布状态
      */
     PUBLISHED,
     
     /**
-     * 已废弃状态：配置已被废弃或被新版本替代
+     * 已废弃状态
      */
-    DEPRECATED
+    DEPRECATED;
+
+    public static boolean contains(String status) {
+        try {
+            valueOf(status);
+            return true;
+        } catch (IllegalArgumentException e) {
+            return false;
+        }
+    }
 }
  
  

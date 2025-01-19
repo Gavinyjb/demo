@@ -30,4 +30,6 @@ config:
   version:
     max-datasource-versions: 5
     max-apirecord-versions: 5
-    max-api-meta-versions: 5 
+    max-api-meta-versions: 5
+diff:
+  ignore-fields:

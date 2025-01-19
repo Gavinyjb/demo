@@ -1,11 +1,13 @@
 package com.example.dto;
 
 import com.example.model.DataSourceConfig;
+import lombok.Builder;
 import lombok.Data;
 
 import java.util.List;
 
 @Data
+@Builder
 public class ConfigDiffResponse {
     /**
      * 新增或更新的配置

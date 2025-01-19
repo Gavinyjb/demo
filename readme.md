@@ -1,417 +1,205 @@
-# 数据模型
+# 配置管理服务
 
+一个用于管理和发布配置的服务系统，支持灰度发布和版本控制。
 
-ER 关系图
-```mermaid
-erDiagram
-    BaseVersionedConfig ||--|| data_source_config : "extends"
-    BaseVersionedConfig ||--|| api_record_config : "extends"
-    BaseVersionedConfig ||--|| api_meta_config : "extends"
-    
-    data_source_config ||--o{ publish_history : "has"
-    api_record_config ||--o{ publish_history : "has"
-    api_meta_config ||--o{ publish_history : "has"
+## 功能特性
 
-    BaseVersionedConfig {
-        bigint id PK
-        varchar version_id UK
-        varchar status
-        text effective_gray_groups
-        datetime gmt_create
-        datetime gmt_modified
-    }
+- 支持多种配置类型（数据源配置、API元数据、API记录）
+- 基于阶段的灰度发布策略
+- 版本控制和回滚机制
+- 发布历史记录
+- 配置变更检测
 
-    data_source_config {
-        bigint id PK
-        bigint at_work_id
-        varchar source
-        varchar source_group
-        varchar gateway_type
-        varchar dm
-        varchar loghub_endpoint
-        varchar loghub_project
-        varchar loghub_stream
-        varchar loghub_accesskey_id
-        varchar loghub_accesskey_secret
-        varchar loghub_assume_role_arn
-        varchar loghub_cursor
-        text consume_region
-        int data_fetch_interval_millis
-    }
+## 系统架构
 
-    api_record_config {
-        bigint id PK
-        varchar gateway_type
-        varchar gateway_code
-        varchar api_version
-        varchar api_name
-        varchar loghub_stream
-        text basic_config
-        text event_config
-        text user_identity_config
-        text request_config
-        text response_config
-        text filter_config
-        text reference_resource_config
-        varchar type
-    }
-
-    api_meta_config {
-        bigint id PK
-        varchar api_name
-        varchar product
-        varchar gateway_type
-        varchar dm
-        varchar gateway_code
-        varchar api_version
-        varchar actiontrail_code
-        varchar operation_type
-        text description
-        varchar visibility
-        varchar isolation_type
-        varchar service_type
-        boolean response_body_log
-        varchar invoke_type
-        text resource_spec
-        varchar effective_flag
-        varchar audit_status
-    }
-
-    publish_history {
-        bigint id PK
-        varchar version_id FK
-        varchar config_type
-        varchar status
-        text gray_groups
-        varchar operator
-        datetime gmt_create
-        datetime gmt_modified
-    }
-```
+### 数据模型
 
 ```mermaid
 erDiagram
-    data_source_config {
-        bigint id PK
-        varchar version_id UK
-        varchar source
-        varchar source_group
-        varchar gateway_type
-        varchar dm
-        varchar loghub_endpoint
-        varchar loghub_project
-        varchar loghub_stream
-        varchar loghub_accesskey_id
-        varchar loghub_accesskey_secret
-        varchar loghub_assume_role_arn
-        varchar loghub_cursor
-        text consume_region
-        int data_fetch_interval_millis
-        varchar status
-        text effective_gray_groups
-        datetime gmt_create
-        datetime gmt_modified
+    config_version ||--o{ config_gray_release : "灰度发布"
+    config_version ||--o{ publish_history : "发布历史"
+    config_version ||--|| data_source_config : "数据源配置"
+    config_version ||--|| api_record_config : "API记录"
+    config_version ||--|| amp_api_meta : "API元数据"
+
+    config_version {
+        varchar(256) version_id PK "版本ID"
+        varchar(512) identifier "配置标识"
+        varchar(64) config_type "配置类型"
+        varchar(64) status "状态"
+        datetime gmt_create "创建时间"
+        datetime gmt_modified "修改时间"
     }
 
-    api_record_config {
-        bigint id PK
-        varchar version_id UK
-        varchar gateway_type
-        varchar gateway_code
-        varchar api_version
-        varchar api_name
-        varchar loghub_stream
-        text basic_config
-        text event_config
-        text user_identity_config
-        text request_config
-        text response_config
-        text filter_config
-        text reference_resource_config
-        varchar type
-        varchar status
-        text effective_gray_groups
-        datetime gmt_create
-        datetime gmt_modified
-    }
-
-    api_meta_config {
-        bigint id PK
-        varchar version_id UK
-        varchar api_name
-        varchar product
-        varchar gateway_type
-        varchar dm
-        varchar gateway_code
-        varchar api_version
-        varchar actiontrail_code
-        varchar operation_type
-        varchar description
-        varchar visibility
-        varchar isolation_type
-        varchar service_type
-        tinyint response_body_log
-        varchar invoke_type
-        varchar resource_spec
-        varchar status
-        text effective_gray_groups
-        varchar effective_flag
-        varchar audit_status
-        datetime gmt_create
-        datetime gmt_modified
+    config_gray_release {
+        varchar(256) version_id FK "版本ID"
+        varchar(64) stage "灰度阶段"
+        datetime gmt_create "创建时间"
+        datetime gmt_modified "修改时间"
     }
 
     publish_history {
-        bigint id PK
-        varchar version_id
-        varchar config_type
-        varchar status
-        text gray_groups
-        varchar operator
-        datetime gmt_create
-        datetime gmt_modified
+        varchar(256) version_id FK "版本ID"
+        varchar(64) config_type "配置类型"
+        varchar(64) status "状态"
+        varchar(64) stage "灰度阶段"
+        varchar(256) operator "操作人"
+        datetime gmt_create "创建时间"
+        datetime gmt_modified "修改时间"
     }
 
-    data_source_config ||--o{ publish_history : "records"
-    api_record_config ||--o{ publish_history : "records"
-    api_meta_config ||--o{ publish_history : "records"
-```
-
-
-```mermaid
-stateDiagram-v2
-    [*] --> Draft: 创建配置
-    Draft --> V1_Stage1: 发布配置-阶段 1
-    
-    state "版本1" as V1 {
-        V1_Stage1 --> V1_Stage2: 发布配置-阶段 2
-        V1_Stage2 --> V1_Full: 发布配置-全量发布
-        note right of V1_Stage1: ap-southeast-2
-        note right of V1_Stage2: cn-chengdu,ap-southeast-2,cn-shanghai
-        note right of V1_Full: 所有地域
+    data_source_config {
+        varchar(256) version_id PK,FK "版本ID"
+        varchar(256) source "数据源标识"
+        varchar(256) source_group "数据源分组"
+        varchar(256) gateway_type "网关类型"
+        varchar(64) dm "数据|管控"
+        varchar(256) sls_endpoint "SLS访问地址"
+        varchar(256) sls_project "SLS项目"
+        varchar(256) sls_logstore "SLS日志库"
+        varchar(256) sls_account_id "SLS账号ID"
+        varchar(256) sls_assume_role_arn "SLS角色ARN"
+        varchar(256) sls_cursor "SLS游标"
+        varchar(256) consume_region "消费地域"
+        varchar(1024) worker_config "工作配置JSON"
     }
-    
-    V1_Full --> V2_Draft: 更新配置(创建新版本)
-    
-    state "版本共存阶段" as Coexist {
-        state "版本1(已发布)" as V1_Active {
-            V1_Published: 全量发布状态
-        }
-        
-        state "版本2(灰度中)" as V2_Active {
-            V2_Draft --> V2_Stage1: 发布新版本--阶段 1
-            V2_Stage1 --> V2_Stage2: 发布配置-阶段 2
-            V2_Stage2 --> V2_Full: 全量发布
-            note right of V2_Stage1: ap-southeast-2
-            note right of V2_Stage2: cn-chengdu,ap-southeast-2,cn-shanghai
-            note right of V2_Full: 所有地域
-        }
+
+    api_record_config {
+        varchar(256) version_id PK,FK "版本ID"
+        varchar(64) gateway_type "网关类型"
+        varchar(64) gateway_code "网关编码"
+        varchar(64) api_version "API版本"
+        varchar(64) api_name "API名称"
+        varchar(15000) basic_config "基础配置JSON"
+        varchar(15000) event_config "事件配置JSON"
+        varchar(15000) user_identity_config "用户身份配置JSON"
+        varchar(15000) request_config "请求配置JSON"
+        varchar(15000) response_config "响应配置JSON"
+        varchar(15000) filter_config "过滤配置JSON"
+        varchar(15000) reference_resource_config "引用资源配置JSON"
     }
-    
-    V2_Full --> V1_Deprecated: 版本2全量发布后,版本1自动废弃
-    V1_Deprecated --> [*]
 
+    amp_api_meta {
+        varchar(256) version_id PK,FK "版本ID"
+        varchar(256) api_name "API名称"
+        varchar(256) product "产品名称"
+        varchar(64) gateway_type "网关类型"
+        varchar(64) dm "数据|管控"
+        varchar(256) gateway_code "网关编码"
+        varchar(64) api_version "API版本"
+        varchar(256) actiontrail_code "操作审计编码"
+        varchar(64) operation_type "操作类型"
+        varchar(3072) description "API描述"
+        varchar(64) visibility "可见性"
+        varchar(64) isolation_type "隔离类型"
+        varchar(64) service_type "服务类型"
+        tinyint(4) response_body_log "响应体日志"
+        varchar(64) invoke_type "调用类型"
+        varchar(7168) resource_spec "资源规格JSON"
+        varchar(64) effective_flag "生效标识"
+        varchar(64) audit_status "审计状态"
+    }
 ```
 
-```mermaid
-sequenceDiagram
-    participant Client
-    participant Service
-    participant DB
-    participant V1 as 版本1
-    participant V2 as 版本2
-    
-    %% 创建和发布版本1
-    Client->>Service: 创建配置
-    Service->>DB: 插入配置(status=DRAFT)
-    Service-->>Client: 返回版本1配置(versionId=DS202501090001)
-    
-    Client->>Service: 发布版本1到阶段1(ap-southeast-2)
-    Service->>V1: 更新状态(status=PUBLISHED)
-    Service->>V1: 设置灰度组(effective_gray_groups=ap-southeast-2)
-    Service->>DB: 记录发布历史
-    
-    Client->>Service: 发布版本1到阶段2
-    Service->>V1: 更新灰度组(effective_gray_groups=cn-chengdu,ap-southeast-2,cn-shanghai)
-    Service->>DB: 记录发布历史
-    
-    Client->>Service: 版本1全量发布
-    Service->>V1: 更新灰度组(effective_gray_groups=所有地域)
-    Service->>DB: 记录发布历史
-    
-    %% 创建和发布版本2
-    Client->>Service: 更新配置(创建新版本)
-    Service->>DB: 插入配置(status=DRAFT)
-    Service-->>Client: 返回版本2配置(versionId=DS202501090002)
-    
-    %% 版本共存阶段
-    Note over V1,V2: 版本共存阶段开始
-    
-    Client->>Service: 发布版本2到阶段1
-    Service->>V2: 更新状态(status=PUBLISHED)
-    Service->>V2: 设置灰度组(effective_gray_groups=ap-southeast-2)
-    Service->>DB: 记录发布历史
-    
-    Note over V1,V2: 此时版本1在其他地域生效,版本2在ap-southeast-2生效
-    
-    Client->>Service: 发布版本2到阶段2
-    Service->>V2: 更新灰度组(effective_gray_groups=cn-chengdu,ap-southeast-2,cn-shanghai)
-    Service->>DB: 记录发布历史
-    
-    Note over V1,V2: 此时版本1在剩余地域生效,版本2在指定地域生效
-    
-    Client->>Service: 版本2全量发布
-    Service->>V2: 更新灰度组(effective_gray_groups=所有地域)
-    Service->>V1: 更新状态(status=DEPRECATED)
-    Service->>DB: 记录发布历史
-    
-    Note over V1,V2: 版本2完全接管,版本1废弃
-```
+### 灰度发布策略
 
-### 发布接口
+采用基于阶段(Stage)的灰度发布策略：
+- STAGE_1: 首批灰度地域
+- STAGE_2: 第二批灰度地域
+- FULL: 全量发布
 
-#### 发布配置
+### 配置状态流转
 
-```
-POST /api/publish
-```
+- DRAFT: 草稿状态
+- PUBLISHED: 已发布状态
+- DEPRECATED: 已废弃状态
 
-#### 按照阶段发布配置
-
-```
-POST /api/publish/stage
-```
-
-#### 回滚配置
-
-```
-POST /api/publish/rollback
-```
-
-#### 废弃配置
-
-```
-POST /api/publish/deprecate
-```
-
-#### 回滚到上一个版本
-
-```
-POST /api/publish/rollback/previous
-```
-
-#### 获取发布历史
-
-```
-GET /api/publish/history
-```
-
-#### 获取所有灰度阶段配置
-
-```
-GET /api/publish/stage
-```
+## API接口
 
 ### 数据源配置接口
 
-#### 创建数据源配置
-
-```
-POST /api/config/create
-```
-
-#### 更新数据源配置
-
-```
-POST /api/config/update
+```http
+POST   /api/datasource              # 创建配置
+PUT    /api/datasource/{versionId}  # 更新配置
+GET    /api/datasource/{versionId}  # 获取指定版本
+GET    /api/datasource/published    # 获取所有已发布配置
+GET    /api/datasource/active       # 获取指定地域生效的配置
+POST   /api/datasource/diff         # 获取配置变更信息
 ```
 
-#### 获取当前地域生效的所有数据源配置
+### 发布管理接口
 
-```
-GET /api/config/active
-```
-
-#### 获取指定source的所有已发布数据源配置
-
-```
-GET /api/config/published
-```
-
-#### 获取指定source在指定地域生效的数据源配置
-
-```
-GET /api/config/active
+```http
+POST   /api/publish/{versionId}              # 发布配置
+POST   /api/publish/{versionId}/deprecate    # 废弃配置
+POST   /api/publish/rollback/previous        # 回滚到上一版本
+POST   /api/publish/rollback/{targetVersionId}# 回滚到指定版本
+GET    /api/publish/history/{versionId}      # 获取发布历史
+GET    /api/publish/stages                   # 获取灰度阶段信息
 ```
 
-#### 获取配置变更信息
+## 配置示例
 
+### 数据源配置
+
+```json
+{
+  "source": "example-source",
+  "sourceGroup": "example-group",
+  "gatewayType": "API",
+  "dm": "DATA",
+  "slsEndpoint": "cn-hangzhou.log.aliyuncs.com",
+  "slsProject": "example-project",
+  "slsLogstore": "example-logstore",
+  "workerConfig": "{\"fetchIntervalMillis\": 1000}"
+}
 ```
-POST /api/datasource/diff
+
+## 部署要求
+
+- Java 8
+- MySQL 5.7+
+- Spring Boot 2.7+
+
+## 配置说明
+
+```yaml
+spring:
+  datasource:
+    url: jdbc:mysql://localhost:3306/config_management
+    username: root
+    password: password
+
+config:
+  version:
+    max-datasource-versions: 5
+    max-apirecord-versions: 5
+    max-api-meta-versions: 5
+
+diff:
+  ignore-fields: gmt_create,gmt_modified
 ```
 
-### 1. 数据源配置接口
-| 接口描述 | 请求方式 | 接口路径 |
-|---------|---------|---------|
-| 创建数据源配置 | POST | /api/datasource |
-| 更新数据源配置 | PUT | /api/datasource/{versionId} |
-| 获取当前地域的数据源配置 | GET | /api/datasource/current-region |
-| 获取指定地域的数据源配置 | GET | /api/datasource/region/{region} |
-| 获取指定source在当前地域生效的配置 | GET | /api/datasource/{source}/active |
-| 获取指定source的所有已发布配置 | GET | /api/datasource/{source}/published |
-| 获取指定source在指定地域的生效配置 | GET | /api/datasource/{source}/region/{region} |
-| 获取配置变更信息 | POST | /api/datasource/diff |
+## 开发指南
 
-### 2. API记录配置接口
-| 接口描述 | 请求方式 | 接口路径 |
-|---------|---------|---------|
-| 创建API记录配置 | POST | /api/api-record |
-| 更新API记录配置 | PUT | /api/api-record/{versionId} |
-| 获取所有已发布的API记录配置 | GET | /api/api-record/published/all |
-| 获取指定地域的API记录配置 | GET | /api/api-record/region/{region} |
-| 获取指定API在指定地域生效的配置 | GET | /api/api-record/active |
-| 获取指定API的所有已发布配置 | GET | /api/api-record/published |
+1. 克隆项目
+2. 配置数据库连接
+3. 执行 schema.sql 创建数据库表
+4. 运行应用
 
-### 3. API Meta配置接口
-| 接口描述 | 请求方式 | 接口路径 |
-|---------|---------|---------|
-| 创建API Meta配置 | POST | /api/api-meta |
-| 更新API Meta配置 | PUT | /api/api-meta/{versionId} |
-| 获取所有已发布的API Meta配置 | GET | /api/api-meta/published/all |
-| 获取指定地域的API Meta配置 | GET | /api/api-meta/region/{region} |
-| 获取指定API在指定地域生效的配置 | GET | /api/api-meta/active |
-| 获取指定API的所有已发布配置 | GET | /api/api-meta/published |
-| 根据版本ID查询配置 | GET | /api/api-meta/version/{versionId} |
+```bash
+./mvnw spring-boot:run
+```
 
-### 4. 配置发布接口
-| 接口描述 | 请求方式 | 接口路径 |
-|---------|---------|---------|
-| 发布配置 | POST | /api/publish |
-| 按阶段发布配置 | POST | /api/publish/stage |
-| 回滚配置 | POST | /api/publish/rollback |
-| 废弃配置 | POST | /api/publish/deprecate |
-| 获取发布历史 | GET | /api/publish/history/{versionId} |
-| 获取所有灰度阶段信息 | GET | /api/publish/stages |
+## API文档
 
-## 灰度发布阶段说明
-- **阶段1 (STAGE_1)**: 仅在 ap-southeast-2 生效
-- **阶段2 (STAGE_2)**: 在 cn-chengdu、ap-southeast-2、cn-shanghai 生效
-- **全量发布 (FULL)**: 在所有地域生效，使用 "all" 标识
+访问 Swagger UI：
+```
+http://localhost:8080/swagger-ui.html
+```
 
-## 配置状态说明
-- **DRAFT**: 草稿状态，新建或修改后的配置状态
-- **PUBLISHED**: 已发布状态，配置已发布到一个或多个灰度组
-- **DEPRECATED**: 已废弃状态，配置已被废弃或被新版本替代
+## 注意事项
 
-## 版本号规则
-- 数据源配置：DS + 年月日 + 4位序号，如：DS202401150001
-- API记录配置：AR + 年月日 + 4位序号，如：AR202401150001
-- API Meta配置：AM + 年月日 + 4位序号，如：AM202401150001
-
-## 支持的地域列表
-- cn-hangzhou
-- cn-shanghai
-- ap-southeast-1
-- cn-chengdu
-- ap-southeast-2
-- ...
+- 配置发布前需要先创建版本
+- 灰度发布需要指定正确的阶段
+- 回滚操作会创建新的版本

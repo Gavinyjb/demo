@@ -4,7 +4,7 @@ import com.example.enums.ConfigStatus;
 import com.example.enums.ConfigType;
 import com.example.enums.GrayStage;
 import com.example.mapper.PublishHistoryMapper;
-import com.example.model.ConfigIdentifier;
+import com.example.model.BaseVersionedConfig;
 import com.example.model.PublishHistory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -33,44 +33,30 @@ public class PublishService {
      * 发布配置
      */
     @Transactional
-    public void publish(String versionId, String configType, List<String> grayGroups, String operator) {
-        // 如果是全量发布，使用 "all"
-        String grayGroupsJson = grayGroups.size() == 1 && grayGroups.get(0).equals("all") 
-            ? "all" 
-            : String.join(",", grayGroups);
+    public void publishConfig(String versionId, String configType, String stage, String operator) {
+        // 根据配置类型选择对应的服务
+        BaseConfigService<?> configService = getConfigService(configType);
         
-        if (ConfigType.DATA_SOURCE.name().equals(configType)) {
-            dataSourceConfigService.updateStatus(versionId, ConfigStatus.PUBLISHED.name(), grayGroupsJson);
-        } else if (ConfigType.API_RECORD.name().equals(configType)) {
-            apiRecordConfigService.updateStatus(versionId, ConfigStatus.PUBLISHED.name(), grayGroupsJson);
-        } else if (ConfigType.API_META.name().equals(configType)) {
-            apiMetaConfigService.updateStatus(versionId, ConfigStatus.PUBLISHED.name(), grayGroupsJson);
-        }
+        // 更新配置状态和灰度信息
+        configService.updateStatus(versionId, ConfigStatus.PUBLISHED.name(), stage);
         
-        recordHistory(versionId, configType, ConfigStatus.PUBLISHED.name(), grayGroupsJson, operator);
-    }
-
-    /**
-     * 按阶段发布配置
-     */
-    @Transactional
-    public void publishByStage(String versionId, String configType, GrayStage stage, String operator) {
-        publish(versionId, configType, stage.getRegions(), operator);
+        // 记录发布历史
+        recordHistory(versionId, configType, ConfigStatus.PUBLISHED.name(), stage, operator);
     }
 
     /**
      * 废弃配置
      */
     @Transactional
-    public void deprecate(String versionId, String operator) {
-        // 根据版本号前缀确定配置类型
-        String configType = getConfigTypeFromVersionId(versionId);
+    public void deprecateConfig(String versionId, String configType, String operator) {
+        // 根据配置类型选择对应的服务
+        BaseConfigService<?> configService = getConfigService(configType);
         
-        // 废弃配置
-        updateConfigStatus(versionId, ConfigStatus.DEPRECATED.name(), "", configType);
+        // 更新配置状态
+        configService.updateStatus(versionId, ConfigStatus.DEPRECATED.name(), null);
         
         // 记录发布历史
-        recordHistory(versionId, configType, ConfigStatus.DEPRECATED.name(), "", operator);
+        recordHistory(versionId, configType, ConfigStatus.DEPRECATED.name(), null, operator);
     }
 
     /**
@@ -78,16 +64,22 @@ public class PublishService {
      */
     @Transactional
     public void rollback(String currentVersionId, String targetVersionId, String operator) {
-        // 根据版本号前缀确定配置类型
-        String configType = getConfigTypeFromVersionId(currentVersionId);
-        
+        // 获取配置类型
+        PublishHistory currentHistory = publishHistoryMapper.findByVersionId(currentVersionId)
+            .stream()
+            .findFirst()
+            .orElseThrow(() -> new RuntimeException("Current version not found"));
+
         // 废弃当前版本
-        updateConfigStatus(currentVersionId, ConfigStatus.DEPRECATED.name(), "", configType);
-        // 启用目标版本（全量发布）
-        updateConfigStatus(targetVersionId, ConfigStatus.PUBLISHED.name(), "all", configType);
-        
-        // 记录发布历史
-        recordHistory(targetVersionId, configType, ConfigStatus.PUBLISHED.name(), "all", operator);
+        deprecateConfig(currentVersionId, currentHistory.getConfigType(), operator);
+
+        // 重新发布目标版本
+        PublishHistory targetHistory = publishHistoryMapper.findByVersionId(targetVersionId)
+            .stream()
+            .findFirst()
+            .orElseThrow(() -> new RuntimeException("Target version not found"));
+
+        publishConfig(targetVersionId, targetHistory.getConfigType(), targetHistory.getStage(), operator);
     }
 
     /**
@@ -95,14 +87,14 @@ public class PublishService {
      */
     @Transactional
     public void rollbackToPrevious(String identifier, String configType, String operator) {
-        List<? extends ConfigIdentifier> publishedConfigs = getPublishedConfigs(identifier, configType);
+        List<? extends BaseVersionedConfig> publishedConfigs = getPublishedConfigs(identifier, configType);
         
         if (publishedConfigs.size() < 2) {
             throw new RuntimeException("No previous version to rollback for: " + identifier);
         }
         
-        ConfigIdentifier currentConfig = publishedConfigs.get(0);
-        ConfigIdentifier previousConfig = publishedConfigs.get(1);
+        BaseVersionedConfig currentConfig = publishedConfigs.get(0);
+        BaseVersionedConfig previousConfig = publishedConfigs.get(1);
         
         rollback(currentConfig.getVersionId(), previousConfig.getVersionId(), operator);
     }
@@ -112,7 +104,7 @@ public class PublishService {
      */
     @Transactional
     public void rollbackToVersion(String identifier, String targetVersionId, String configType, String operator) {
-        List<? extends ConfigIdentifier> publishedConfigs = getPublishedConfigs(identifier, configType);
+        List<? extends BaseVersionedConfig> publishedConfigs = getPublishedConfigs(identifier, configType);
         
         if (publishedConfigs.isEmpty()) {
             throw new RuntimeException("No active version for: " + identifier);
@@ -155,44 +147,51 @@ public class PublishService {
         }
     }
 
-    private List<? extends ConfigIdentifier> getPublishedConfigs(String identifier, String configType) {
-        String[] parts;
-        switch (ConfigType.valueOf(configType)) {
-            case DATA_SOURCE:
-                return dataSourceConfigService.getPublishedByIdentifier(identifier);
-            case API_RECORD:
-                parts = identifier.split(":");
-                if (parts.length != 4) {
-                    throw new IllegalArgumentException("Invalid API identifier format");
-                }
-                return apiRecordConfigService.getPublishedByIdentifier(
-                    parts[0], parts[1], parts[2], parts[3]);
-            case API_META:
-                parts = identifier.split(":");
-                if (parts.length != 4) {
-                    throw new IllegalArgumentException("Invalid API identifier format");
-                }
-                return apiMetaConfigService.getPublishedByIdentifier(
-                    parts[0], parts[1], parts[2], parts[3]);
-            default:
-                throw new IllegalArgumentException("Unsupported config type: " + configType);
-        }
+    private List<? extends BaseVersionedConfig> getPublishedConfigs(String identifier, String configType) {
+        BaseConfigService<?> configService = getConfigService(configType);
+        return configService.getPublishedByIdentifier(identifier);
     }
 
     /**
      * 获取发布历史
      */
-    public List<PublishHistory> getHistory(String versionId) {
+    public List<PublishHistory> getPublishHistory(String versionId) {
         return publishHistoryMapper.findByVersionId(versionId);
     }
 
-    private void recordHistory(String versionId, String configType, String status, String grayGroups, String operator) {
-        PublishHistory history = new PublishHistory();
-        history.setVersionId(versionId);
-        history.setConfigType(configType);
-        history.setStatus(status);
-        history.setGrayGroups(grayGroups);
-        history.setOperator(operator);
+    private void recordHistory(String versionId, String configType, String status, String stage, String operator) {
+        PublishHistory history = PublishHistory.builder()
+            .versionId(versionId)
+            .configType(configType)
+            .status(status)
+            .stage(stage)
+            .operator(operator)
+            .build();
         publishHistoryMapper.insert(history);
+    }
+
+    private BaseConfigService<?> getConfigService(String configType) {
+        switch (configType) {
+            case "API_META":
+                return apiMetaConfigService;
+            case "API_RECORD":
+                return apiRecordConfigService;
+            case "DATA_SOURCE":
+                return dataSourceConfigService;
+            default:
+                throw new IllegalArgumentException("Unsupported config type: " + configType);
+        }
+    }
+
+    @Transactional
+    public void publishByStage(String versionId, String configType, GrayStage stage, String operator) {
+        publishConfig(versionId, configType, stage.name(), operator);
+    }
+
+    /**
+     * 获取指定配置类型和灰度阶段的发布历史
+     */
+    public List<PublishHistory> getHistoryByTypeAndStage(String configType, String stage) {
+        return publishHistoryMapper.findByConfigTypeAndStage(configType, stage);
     }
 } 

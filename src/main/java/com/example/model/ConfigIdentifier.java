@@ -6,15 +6,14 @@ package com.example.model;
  */
 public interface ConfigIdentifier {
     /**
-     * 获取配置的唯一标识
-     * 不同类型的配置通过实现此方法返回其唯一标识
-     *
-     * @return 配置的唯一标识字符串
+     * 获取配置唯一标识
+     * 数据源配置：source
+     * API配置：gatewayType:gatewayCode:apiVersion:apiName
      */
     String getIdentifier();
 
     /**
-     * 获取配置的版本ID
+     * 获取版本ID
      */
     String getVersionId();
 } 

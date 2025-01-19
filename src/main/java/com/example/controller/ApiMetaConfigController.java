@@ -47,31 +47,27 @@ public class ApiMetaConfigController {
     @GetMapping("/active")
     @Operation(summary = "获取指定API在指定地域生效的配置")
     public ResponseEntity<ApiMetaConfig> getActiveConfig(
-            @RequestParam String gatewayType,
-            @RequestParam String gatewayCode,
-            @RequestParam String apiVersion,
-            @RequestParam String apiName,
+            @RequestParam String identifier,
             @RequestParam String region) {
         return ResponseEntity.ok(
-            apiMetaConfigService.getActiveByIdentifierAndRegion(
-                gatewayType, gatewayCode, apiVersion, apiName, region));
+            apiMetaConfigService.getActiveByIdentifierAndRegion(identifier, region));
     }
 
     @GetMapping("/published")
     @Operation(summary = "获取指定API的所有已发布配置")
     public ResponseEntity<List<ApiMetaConfig>> getPublishedConfigs(
-            @RequestParam String gatewayType,
-            @RequestParam String gatewayCode,
-            @RequestParam String apiVersion,
-            @RequestParam String apiName) {
+            @RequestParam String identifier) {
         return ResponseEntity.ok(
-            apiMetaConfigService.getPublishedByIdentifier(
-                gatewayType, gatewayCode, apiVersion, apiName));
+            apiMetaConfigService.getPublishedByIdentifier(identifier));
     }
 
-    @GetMapping("/version/{versionId}")
-    @Operation(summary = "根据版本ID查询配置")
-    public ResponseEntity<ApiMetaConfig> getByVersionId(@PathVariable String versionId) {
-        return ResponseEntity.ok(apiMetaConfigService.findByVersionId(versionId));
+    @PostMapping("/{versionId}/publish")
+    @Operation(summary = "发布配置")
+    public ResponseEntity<Void> publish(
+            @PathVariable String versionId,
+            @RequestParam String stage,
+            @RequestParam String operator) {
+        apiMetaConfigService.publish(versionId, stage, operator);
+        return ResponseEntity.ok().build();
     }
 } 

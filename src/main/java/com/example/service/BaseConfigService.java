@@ -1,5 +1,6 @@
 package com.example.service;
 
+import com.example.model.BaseVersionedConfig;
 import com.example.model.ConfigIdentifier;
 import java.util.List;
 
@@ -7,7 +8,7 @@ import java.util.List;
  * 配置服务基础接口
  * @param <T> 配置类型
  */
-public interface BaseConfigService<T extends ConfigIdentifier> {
+public interface BaseConfigService<T extends BaseVersionedConfig> {
     /**
      * 创建配置
      */
@@ -19,21 +20,22 @@ public interface BaseConfigService<T extends ConfigIdentifier> {
     T update(String oldVersionId, T newConfig);
     
     /**
-     * 更新配置状态
-     * @param versionId 版本ID
-     * @param status 状态
-     * @param grayGroups 灰度组，使用 "all" 表示全量发布
-     */
-    void updateStatus(String versionId, String status, String grayGroups);
-    
-    /**
      * 获取所有已发布的配置
      */
     List<T> getAllPublished();
     
     /**
-     * 获取指定地域生效的配置
-     * 包括在指定地域灰度生效的配置和全量发布的配置
+     * 根据版本ID查询配置
+     */
+    T findByVersionId(String versionId);
+    
+    /**
+     * 更新配置状态和灰度阶段
+     */
+    void updateStatus(String versionId, String status, String stage);
+    
+    /**
+     * 获取指定地域生效的配置列表
      */
     List<T> getActiveByRegion(String region);
     
@@ -46,9 +48,4 @@ public interface BaseConfigService<T extends ConfigIdentifier> {
      * 获取指定标识在指定地域生效的配置
      */
     T getActiveByIdentifierAndRegion(String identifier, String region);
-    
-    /**
-     * 根据版本ID查找配置
-     */
-    T findByVersionId(String versionId);
 } 

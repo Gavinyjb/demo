@@ -38,15 +38,20 @@ public class DataSourceConfigService implements BaseConfigService<DataSourceConf
     @Transactional
     public DataSourceConfig create(DataSourceConfig config) {
         // 检查是否已存在相同标识的配置
-        List<DataSourceConfig> existingConfigs = getPublishedBySource(config.getSource());
+        List<DataSourceConfig> existingConfigs = dataSourceConfigMapper.findPublishedConfigsBySource(config.getSource());
         if (!existingConfigs.isEmpty()) {
             throw new RuntimeException("Already exists config with source: " + config.getSource());
         }
         
+        // 设置版本信息
         config.setVersionId(versionGenerator.generateDataSourceVersion());
         config.setStatus(ConfigStatus.DRAFT.name());
-        dataSourceConfigMapper.insert(config);
         
+        // 插入配置和版本信息
+        dataSourceConfigMapper.insertDataSource(config);
+        dataSourceConfigMapper.insertVersion(config);
+        
+        // 清理旧的草稿版本
         cleanupOldVersions(config.getSource());
         
         return config;
@@ -60,10 +65,15 @@ public class DataSourceConfigService implements BaseConfigService<DataSourceConf
             throw new RuntimeException("原配置版本不存在");
         }
         
+        // 设置版本信息
         newConfig.setVersionId(versionGenerator.generateDataSourceVersion());
         newConfig.setStatus(ConfigStatus.DRAFT.name());
-        dataSourceConfigMapper.insert(newConfig);
         
+        // 插入配置和版本信息
+        dataSourceConfigMapper.insertDataSource(newConfig);
+        dataSourceConfigMapper.insertVersion(newConfig);
+        
+        // 清理旧的草稿版本
         cleanupOldVersions(newConfig.getSource());
         
         return newConfig;
@@ -81,78 +91,48 @@ public class DataSourceConfigService implements BaseConfigService<DataSourceConf
 
     @Override
     @Transactional
-    public void updateStatus(String versionId, String status, String grayGroups) {
-        dataSourceConfigMapper.updateStatus(versionId, status, grayGroups);
+    public void updateStatus(String versionId, String status, String stage) {
+        // 更新版本状态
+        dataSourceConfigMapper.updateVersionStatus(versionId, status);
+        
+        // 如果是发布状态且指定了灰度阶段，则插入灰度发布记录
+        if (ConfigStatus.PUBLISHED.name().equals(status) && stage != null) {
+            dataSourceConfigMapper.insertGrayRelease(versionId, stage);
+        }
     }
 
     @Override
     public List<DataSourceConfig> getActiveByRegion(String region) {
-        if (!regionProvider.isRegionSupported(region)) {
-            throw new IllegalArgumentException("Unsupported region: " + region);
-        }
-        return dataSourceConfigMapper.findByRegion(region);
+        String stage = regionProvider.getStageByRegion(region);
+        return dataSourceConfigMapper.findByStage(stage);
     }
 
     @Override
     public List<DataSourceConfig> getPublishedByIdentifier(String identifier) {
         return dataSourceConfigMapper.findPublishedConfigsBySource(identifier);
     }
-    
+
     @Override
     public DataSourceConfig getActiveByIdentifierAndRegion(String identifier, String region) {
-        if (!regionProvider.isRegionSupported(region)) {
-            throw new IllegalArgumentException("Unsupported region: " + region);
-        }
-        return dataSourceConfigMapper.findActiveConfigBySourceAndRegion(identifier, region);
+        String stage = regionProvider.getStageByRegion(region);
+        return dataSourceConfigMapper.findActiveConfigBySourceAndStage(identifier, stage);
     }
 
     /**
-     * 获取指定source的所有已发布配置
-     */
-    public List<DataSourceConfig> getPublishedBySource(String source) {
-        return dataSourceConfigMapper.findPublishedConfigsBySource(source);
-    }
-
-    /**
-     * 获取指定source在指定地域生效的配置
-     */
-    public DataSourceConfig getActiveBySourceAndRegion(String source, String region) {
-        if (!regionProvider.isRegionSupported(region)) {
-            throw new IllegalArgumentException("Unsupported region: " + region);
-        }
-        return dataSourceConfigMapper.findActiveConfigBySourceAndRegion(source, region);
-    }
-
-    /**
-     * 清理过期版本
-     * 保留最新的N个版本，其他的删除
+     * 清理旧版本
      */
     private void cleanupOldVersions(String source) {
-        List<DataSourceConfig> allVersions = dataSourceConfigMapper.findAllVersionsBySource(source);
-        if (allVersions.size() > versionProperties.getMaxDatasourceVersions()) {
-            // 跳过最新的N个版本，删除剩余的版本
-            allVersions.stream()
-                .skip(versionProperties.getMaxDatasourceVersions())
-                .forEach(config -> dataSourceConfigMapper.deleteByVersionId(config.getVersionId()));
-        }
+        dataSourceConfigMapper.deleteBySourceAndStatus(source, ConfigStatus.DRAFT.name());
     }
 
     /**
      * 获取配置变更信息
      */
     public ConfigDiffResponse getConfigDiff(ConfigDiffRequest request) {
-        if (!regionProvider.isRegionSupported(request.getRegion())) {
-            throw new IllegalArgumentException("Unsupported region: " + request.getRegion());
-        }
+        String stage = regionProvider.getStageByRegion(request.getRegion());
         
         // 获取当前所有生效的配置
-        List<DataSourceConfig> currentConfigs = dataSourceConfigMapper.findActiveConfigsByRegion(request.getRegion());
-        
-        // 获取已失效的版本
-        List<String> deprecatedVersionIds = dataSourceConfigMapper.findDeprecatedVersions(
-            request.getVersionIds(), 
-            request.getRegion()
-        );
+        List<DataSourceConfig> currentConfigs = dataSourceConfigMapper.findByStage(stage);
         
         // 找出新增或更新的配置
         Set<String> oldVersions = new HashSet<>(request.getVersionIds());
@@ -160,11 +140,16 @@ public class DataSourceConfigService implements BaseConfigService<DataSourceConf
             .filter(config -> !oldVersions.contains(config.getVersionId()))
             .collect(Collectors.toList());
         
-        // 构建响应
-        ConfigDiffResponse response = new ConfigDiffResponse();
-        response.setUpdatedConfigs(updatedConfigs);
-        response.setDeprecatedVersionIds(deprecatedVersionIds);
+        // 找出已失效的版本
+        List<String> deprecatedVersionIds = request.getVersionIds().stream()
+            .filter(versionId -> currentConfigs.stream()
+                .noneMatch(config -> config.getVersionId().equals(versionId)))
+            .collect(Collectors.toList());
         
-        return response;
+        // 构建响应
+        return ConfigDiffResponse.builder()
+            .updatedConfigs(updatedConfigs)
+            .deprecatedVersionIds(deprecatedVersionIds)
+            .build();
     }
 } 

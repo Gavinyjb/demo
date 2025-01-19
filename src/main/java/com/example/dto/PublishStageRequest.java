@@ -13,12 +13,12 @@ public class PublishStageRequest {
     /**
      * 配置类型
      */
-    private String configType;
+    private String configType;  // DATA_SOURCE|API_RECORD|API_META
     
     /**
      * 灰度阶段
      */
-    private GrayStage stage;
+    private String stage;       // STAGE_1|STAGE_2|FULL
     
     /**
      * 操作人

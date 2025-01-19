@@ -22,15 +22,79 @@ public class PublishController {
     @Autowired
     private PublishService publishService;
 
-    @PostMapping
+    /**
+     * 发布配置
+     */
+    @PostMapping("/{versionId}")
     @Operation(summary = "发布配置")
-    public ResponseEntity<Void> publish(
-            @RequestParam String versionId,
-            @RequestParam String configType,
-            @RequestParam String operator,
-            @RequestBody List<String> grayGroups) {
-        publishService.publish(versionId, configType, grayGroups, operator);
-        return ResponseEntity.ok().build();
+    public void publish(
+        @PathVariable String versionId,
+        @RequestParam String configType,
+        @RequestParam String stage,
+        @RequestParam String operator
+    ) {
+        publishService.publishConfig(versionId, configType, stage, operator);
+    }
+
+    /**
+     * 废弃配置
+     */
+    @PostMapping("/{versionId}/deprecate")
+    @Operation(summary = "废弃配置")
+    public void deprecate(
+        @PathVariable String versionId,
+        @RequestParam String configType,
+        @RequestParam String operator
+    ) {
+        publishService.deprecateConfig(versionId, configType, operator);
+    }
+
+    /**
+     * 回滚到上一个版本
+     */
+    @PostMapping("/rollback/previous")
+    @Operation(summary = "回滚到上一个版本")
+    public void rollbackToPrevious(
+        @RequestParam String identifier,
+        @RequestParam String configType,
+        @RequestParam String operator
+    ) {
+        publishService.rollbackToPrevious(identifier, configType, operator);
+    }
+
+    /**
+     * 回滚到指定版本
+     */
+    @PostMapping("/rollback/{targetVersionId}")
+    @Operation(summary = "回滚到指定版本")
+    public void rollbackToVersion(
+        @RequestParam String identifier,
+        @PathVariable String targetVersionId,
+        @RequestParam String configType,
+        @RequestParam String operator
+    ) {
+        publishService.rollbackToVersion(identifier, targetVersionId, configType, operator);
+    }
+
+    /**
+     * 获取发布历史
+     */
+    @GetMapping("/history/{versionId}")
+    @Operation(summary = "获取发布历史")
+    public List<PublishHistory> getPublishHistory(@PathVariable String versionId) {
+        return publishService.getPublishHistory(versionId);
+    }
+
+    /**
+     * 获取指定配置类型和灰度阶段的发布历史
+     */
+    @GetMapping("/history")
+    @Operation(summary = "获取指定配置类型和灰度阶段的发布历史")
+    public List<PublishHistory> getHistoryByTypeAndStage(
+        @RequestParam String configType,
+        @RequestParam String stage
+    ) {
+        return publishService.getHistoryByTypeAndStage(configType, stage);
     }
 
     @PostMapping("/stage")
@@ -38,36 +102,10 @@ public class PublishController {
     public ResponseEntity<Void> publishByStage(@RequestBody PublishStageRequest request) {
         publishService.publishByStage(
             request.getVersionId(),
-            request.getConfigType(),
-            request.getStage(),
+            request.getConfigType(), GrayStage.valueOf(request.getStage()),
             request.getOperator()
         );
         return ResponseEntity.ok().build();
-    }
-
-    @PostMapping("/rollback")
-    @Operation(summary = "回滚配置")
-    public ResponseEntity<Void> rollback(
-            @RequestParam String currentVersionId,
-            @RequestParam String targetVersionId,
-            @RequestParam String operator) {
-        publishService.rollback(currentVersionId, targetVersionId, operator);
-        return ResponseEntity.ok().build();
-    }
-
-    @PostMapping("/deprecate")
-    @Operation(summary = "废弃配置")
-    public ResponseEntity<Void> deprecate(
-            @RequestParam String versionId,
-            @RequestParam String operator) {
-        publishService.deprecate(versionId, operator);
-        return ResponseEntity.ok().build();
-    }
-
-    @GetMapping("/history/{versionId}")
-    @Operation(summary = "获取发布历史")
-    public ResponseEntity<List<PublishHistory>> getHistory(@PathVariable String versionId) {
-        return ResponseEntity.ok(publishService.getHistory(versionId));
     }
 
     @GetMapping("/stages")

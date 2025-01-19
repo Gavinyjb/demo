@@ -1,88 +1,97 @@
--- 创建数据源配置表
-CREATE TABLE IF NOT EXISTS data_source_config (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '主键ID',
-    version_id VARCHAR(64) NOT NULL COMMENT '版本ID，格式：DS202501080001',
-    source VARCHAR(128) NOT NULL COMMENT '数据源标识',
-    source_group VARCHAR(128) COMMENT '数据源分组',
-    gateway_type VARCHAR(128) COMMENT '网关类型',
-    dm VARCHAR(128) COMMENT 'DM标识',
-    loghub_endpoint VARCHAR(512) COMMENT 'LogHub终端节点',
-    loghub_project VARCHAR(128) COMMENT 'LogHub项目',
-    loghub_stream VARCHAR(128) COMMENT 'LogHub数据流',
-    loghub_accesskey_id VARCHAR(512) COMMENT 'LogHub访问密钥ID',
-    loghub_accesskey_secret VARCHAR(512) COMMENT 'LogHub访问密钥密文',
-    loghub_assume_role_arn VARCHAR(512) COMMENT 'LogHub角色ARN',
-    loghub_cursor VARCHAR(64) COMMENT 'LogHub游标',
-    consume_region TEXT COMMENT '消费区域',
-    data_fetch_interval_millis INT COMMENT '数据获取间隔(毫秒)',
-    status VARCHAR(32) NOT NULL COMMENT '状态: DRAFT/PUBLISHED/DEPRECATED',
-    effective_gray_groups TEXT COMMENT '生效的灰度组，JSON数组格式',
-    gmt_create DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    gmt_modified DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '修改时间',
-    UNIQUE KEY uk_version (version_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='数据源配置表';
+-- 配置版本表
+CREATE TABLE config_version (
+    version_id VARCHAR(256) PRIMARY KEY COMMENT '版本唯一标识',
+    identifier VARCHAR(512) NOT NULL COMMENT '配置唯一标识',
+    config_type VARCHAR(64) NOT NULL COMMENT '配置类型:DATA_SOURCE|API_RECORD|API_META',
+    status VARCHAR(64) NOT NULL COMMENT '状态:DRAFT|PUBLISHED|DEPRECATED',
+    gmt_create DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    gmt_modified DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY uk_identifier_type (identifier, config_type)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='配置版本表';
 
--- 创建API记录配置表
-CREATE TABLE IF NOT EXISTS api_record_config (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '主键ID',
-    version_id VARCHAR(64) NOT NULL COMMENT '版本ID，格式：AR202501080001',
-    gateway_type VARCHAR(128) COMMENT '网关类型',
-    gateway_code VARCHAR(128) COMMENT '网关编码',
-    api_version VARCHAR(128) COMMENT 'API版本',
-    api_name VARCHAR(128) COMMENT 'API名称',
-    loghub_stream VARCHAR(128) COMMENT 'LogHub数据流',
-    basic_config TEXT COMMENT '基础配置(JSON)',
-    event_config TEXT COMMENT '事件配置(JSON)',
-    user_identity_config TEXT COMMENT '用户身份配置(JSON)',
-    request_config TEXT COMMENT '请求配置(JSON)',
-    response_config TEXT COMMENT '响应配置(JSON)',
-    filter_config TEXT COMMENT '过滤配置(JSON)',
-    reference_resource_config TEXT COMMENT '引用资源配置(JSON)',
-    type VARCHAR(32) COMMENT '类型',
-    status VARCHAR(32) NOT NULL COMMENT '状态: DRAFT/PUBLISHED/DEPRECATED',
-    effective_gray_groups TEXT COMMENT '生效的灰度组，JSON数组格式',
-    gmt_create DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    gmt_modified DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '修改时间',
-    UNIQUE KEY uk_version (version_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='API记录配置表';
+-- 灰度发布表
+CREATE TABLE config_gray_release (
+    version_id VARCHAR(256) NOT NULL COMMENT '关联版本表',
+    stage VARCHAR(64) NOT NULL COMMENT '灰度阶段:STAGE_1|STAGE_2|FULL',
+    gmt_create DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    gmt_modified DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (version_id, stage),
+    CONSTRAINT fk_gray_version FOREIGN KEY (version_id) REFERENCES config_version (version_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='灰度发布表';
 
--- 创建发布历史表
-CREATE TABLE IF NOT EXISTS publish_history (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '主键ID',
-    version_id VARCHAR(64) NOT NULL COMMENT '版本ID',
-    config_type VARCHAR(32) NOT NULL COMMENT '配置类型: DATA_SOURCE/API_RECORD',
-    status VARCHAR(32) NOT NULL COMMENT '发布状态',
-    gray_groups TEXT COMMENT '发布的灰度组，JSON数组格式',
-    operator VARCHAR(64) NOT NULL COMMENT '操作人',
-    gmt_create DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    gmt_modified DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '修改时间',
-    KEY idx_version (version_id)
+-- 发布历史表
+CREATE TABLE publish_history (
+    version_id VARCHAR(256) NOT NULL COMMENT '关联版本表',
+    config_type VARCHAR(64) NOT NULL COMMENT '配置类型:DATA_SOURCE|API_RECORD|API_META',
+    status VARCHAR(64) NOT NULL COMMENT '状态:DRAFT|PUBLISHED|DEPRECATED',
+    stage VARCHAR(64) COMMENT '灰度阶段:STAGE_1|STAGE_2|FULL',
+    operator VARCHAR(256) NOT NULL COMMENT '操作人',
+    gmt_create DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    gmt_modified DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (version_id, gmt_create),
+    CONSTRAINT fk_history_version FOREIGN KEY (version_id) REFERENCES config_version (version_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='发布历史表';
 
--- 创建API Meta配置表
-CREATE TABLE IF NOT EXISTS api_meta_config (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '主键ID',
-    version_id VARCHAR(64) NOT NULL COMMENT '版本ID，格式：AM202501080001',
+-- 数据源配置表
+CREATE TABLE data_source_config (
+    version_id VARCHAR(256) PRIMARY KEY COMMENT '关联版本表',
+    source VARCHAR(256) NOT NULL COMMENT '数据源标识',
+    source_group VARCHAR(256) COMMENT '数据源分组',
+    gateway_type VARCHAR(256) COMMENT '网关类型',
+    dm VARCHAR(64) COMMENT '数据|管控',
+    sls_endpoint VARCHAR(256) COMMENT 'SLS访问地址',
+    sls_project VARCHAR(256) COMMENT 'SLS项目',
+    sls_logstore VARCHAR(256) COMMENT 'SLS日志库',
+    sls_account_id VARCHAR(256) COMMENT 'SLS账号ID',
+    sls_assume_role_arn VARCHAR(256) COMMENT 'SLS角色ARN',
+    sls_cursor VARCHAR(256) COMMENT 'SLS游标',
+    consume_region VARCHAR(256) COMMENT '消费地域',
+    worker_config VARCHAR(1024) COMMENT '工作配置JSON',
+    gmt_create DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    gmt_modified DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT fk_ds_version FOREIGN KEY (version_id) REFERENCES config_version (version_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='数据源配置表';
+
+-- API元数据配置表
+CREATE TABLE amp_api_meta (
+    version_id VARCHAR(256) PRIMARY KEY COMMENT '关联版本表',
     api_name VARCHAR(256) NOT NULL COMMENT 'API名称',
     product VARCHAR(256) COMMENT '产品名称',
-    gateway_type VARCHAR(128) COMMENT '网关类型',
-    dm VARCHAR(256) COMMENT 'DM标识',
-    gateway_code VARCHAR(256) COMMENT '网关编码',
-    api_version VARCHAR(64) COMMENT 'API版本',
-    actiontrail_code VARCHAR(256) COMMENT 'ActionTrail编码',
+    gateway_type VARCHAR(64) NOT NULL COMMENT '网关类型',
+    dm VARCHAR(64) COMMENT '数据|管控',
+    gateway_code VARCHAR(256) NOT NULL COMMENT '网关编码',
+    api_version VARCHAR(64) NOT NULL COMMENT 'API版本',
+    actiontrail_code VARCHAR(256) COMMENT '操作审计编码',
     operation_type VARCHAR(64) COMMENT '操作类型',
     description VARCHAR(3072) COMMENT 'API描述',
     visibility VARCHAR(64) COMMENT '可见性',
     isolation_type VARCHAR(64) COMMENT '隔离类型',
     service_type VARCHAR(64) COMMENT '服务类型',
-    response_body_log TINYINT COMMENT '是否记录响应体',
+    response_body_log TINYINT(4) COMMENT '响应体日志',
     invoke_type VARCHAR(64) COMMENT '调用类型',
-    resource_spec VARCHAR(7168) COMMENT '资源规格',
-    status VARCHAR(32) NOT NULL COMMENT '状态: DRAFT/PUBLISHED/DEPRECATED',
-    effective_gray_groups TEXT COMMENT '生效的灰度组，JSON数组格式',
+    resource_spec VARCHAR(7168) COMMENT '资源规格JSON',
     effective_flag VARCHAR(64) COMMENT '生效标识',
-    audit_status VARCHAR(64) COMMENT '审核状态',
-    gmt_create DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    gmt_modified DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '修改时间',
-    UNIQUE KEY uk_version (version_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='API Meta配置表'; 
+    audit_status VARCHAR(64) COMMENT '审计状态',
+    gmt_create DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    gmt_modified DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT fk_api_meta_version FOREIGN KEY (version_id) REFERENCES config_version (version_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='API元数据配置表';
+
+-- API记录配置表
+CREATE TABLE api_record_config (
+    version_id VARCHAR(256) PRIMARY KEY COMMENT '关联版本表',
+    gateway_type VARCHAR(64) NOT NULL COMMENT '网关类型',
+    gateway_code VARCHAR(64) NOT NULL COMMENT '网关编码',
+    api_version VARCHAR(64) NOT NULL COMMENT 'API版本',
+    api_name VARCHAR(64) NOT NULL COMMENT 'API名称',
+    basic_config VARCHAR(15000) COMMENT '基础配置JSON',
+    event_config VARCHAR(15000) COMMENT '事件配置JSON',
+    user_identity_config VARCHAR(15000) COMMENT '用户身份配置JSON',
+    request_config VARCHAR(15000) COMMENT '请求配置JSON',
+    response_config VARCHAR(15000) COMMENT '响应配置JSON',
+    filter_config VARCHAR(15000) COMMENT '过滤配置JSON',
+    reference_resource_config VARCHAR(15000) COMMENT '引用资源配置JSON',
+    gmt_create DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    gmt_modified DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT fk_api_record_version FOREIGN KEY (version_id) REFERENCES config_version (version_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='API记录配置表'; 

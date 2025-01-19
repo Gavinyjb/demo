@@ -39,7 +39,8 @@ public class ApiMetaConfigService implements BaseConfigService<ApiMetaConfig> {
         
         config.setVersionId(versionGenerator.generateApiMetaVersion());
         config.setStatus(ConfigStatus.DRAFT.name());
-        apiMetaConfigMapper.insert(config);
+        apiMetaConfigMapper.insertApiMeta(config);
+        apiMetaConfigMapper.insertVersion(config);
         
         cleanupOldVersions(config);
         
@@ -56,7 +57,8 @@ public class ApiMetaConfigService implements BaseConfigService<ApiMetaConfig> {
         
         newConfig.setVersionId(versionGenerator.generateApiMetaVersion());
         newConfig.setStatus(ConfigStatus.DRAFT.name());
-        apiMetaConfigMapper.insert(newConfig);
+        apiMetaConfigMapper.insertApiMeta(newConfig);
+        apiMetaConfigMapper.insertVersion(newConfig);
         
         cleanupOldVersions(newConfig);
         
@@ -75,8 +77,11 @@ public class ApiMetaConfigService implements BaseConfigService<ApiMetaConfig> {
 
     @Override
     @Transactional
-    public void updateStatus(String versionId, String status, String grayGroups) {
-        apiMetaConfigMapper.updateStatus(versionId, status, grayGroups);
+    public void updateStatus(String versionId, String status, String stage) {
+        apiMetaConfigMapper.updateVersionStatus(versionId, status);
+        if (ConfigStatus.PUBLISHED.name().equals(status)) {
+            apiMetaConfigMapper.insertGrayRelease(versionId, stage);
+        }
     }
 
     @Override
@@ -84,46 +89,28 @@ public class ApiMetaConfigService implements BaseConfigService<ApiMetaConfig> {
         if (!regionProvider.isRegionSupported(region)) {
             throw new IllegalArgumentException("Unsupported region: " + region);
         }
-        return apiMetaConfigMapper.findByRegion(region);
+        String stage = regionProvider.getStageByRegion(region);
+        return apiMetaConfigMapper.findByStage(stage);
     }
 
     @Override
     public List<ApiMetaConfig> getPublishedByIdentifier(String identifier) {
-        String[] parts = identifier.split(":");
-        if (parts.length != 4) {
-            throw new IllegalArgumentException("Invalid API identifier format");
-        }
-        return getPublishedByIdentifier(parts[0], parts[1], parts[2], parts[3]);
+        return apiMetaConfigMapper.findPublishedConfigsByIdentifier(identifier);
     }
 
     @Override
     public ApiMetaConfig getActiveByIdentifierAndRegion(String identifier, String region) {
-        String[] parts = identifier.split(":");
-        if (parts.length != 4) {
-            throw new IllegalArgumentException("Invalid API identifier format");
-        }
-        return getActiveByIdentifierAndRegion(parts[0], parts[1], parts[2], parts[3], region);
-    }
-
-    /**
-     * 获取指定API的所有已发布配置
-     */
-    public List<ApiMetaConfig> getPublishedByIdentifier(String gatewayType, String gatewayCode, 
-                                                      String apiVersion, String apiName) {
-        return apiMetaConfigMapper.findPublishedConfigsByIdentifier(
-            gatewayType, gatewayCode, apiVersion, apiName);
-    }
-
-    /**
-     * 获取指定API在指定地域生效的配置
-     */
-    public ApiMetaConfig getActiveByIdentifierAndRegion(String gatewayType, String gatewayCode, 
-                                                      String apiVersion, String apiName, String region) {
         if (!regionProvider.isRegionSupported(region)) {
             throw new IllegalArgumentException("Unsupported region: " + region);
         }
-        return apiMetaConfigMapper.findActiveConfigByIdentifierAndRegion(
-            gatewayType, gatewayCode, apiVersion, apiName, region);
+        String stage = regionProvider.getStageByRegion(region);
+        return apiMetaConfigMapper.findActiveConfigByIdentifierAndStage(identifier, stage);
+    }
+
+    @Transactional
+    public void publish(String versionId, String stage, String operator) {
+        apiMetaConfigMapper.updateVersionStatus(versionId, ConfigStatus.PUBLISHED.name());
+        apiMetaConfigMapper.insertGrayRelease(versionId, stage);
     }
 
     private boolean hasSameApiMetaConfig(ApiMetaConfig config) {
@@ -132,13 +119,7 @@ public class ApiMetaConfigService implements BaseConfigService<ApiMetaConfig> {
     }
 
     private void cleanupOldVersions(ApiMetaConfig config) {
-        List<ApiMetaConfig> allVersions = apiMetaConfigMapper.findAllVersionsByIdentifier(
-            config.getGatewayType(),
-            config.getGatewayCode(),
-            config.getApiVersion(),
-            config.getApiName()
-        );
-        
+        List<ApiMetaConfig> allVersions = apiMetaConfigMapper.findPublishedConfigsByIdentifier(config.getIdentifier());
         if (allVersions.size() > versionProperties.getMaxApiMetaVersions()) {
             allVersions.stream()
                 .skip(versionProperties.getMaxApiMetaVersions())
