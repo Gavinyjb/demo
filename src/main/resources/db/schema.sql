@@ -6,7 +6,7 @@ CREATE TABLE IF NOT EXISTS config_version (
     config_status VARCHAR(64) NOT NULL COMMENT '配置状态:DRAFT|PUBLISHED|DEPRECATED',
     gmt_create DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     gmt_modified DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    KEY idx_identifier_type_status (identifier, config_type, config_status)
+    INDEX idx_identifier_type (identifier, config_type)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='配置版本表';
 
 -- 灰度发布表
@@ -15,8 +15,7 @@ CREATE TABLE IF NOT EXISTS config_gray_release (
     stage VARCHAR(64) NOT NULL COMMENT '灰度阶段:STAGE_1|STAGE_2|FULL',
     gmt_create DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     gmt_modified DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    PRIMARY KEY (version_id, stage),
-    KEY idx_stage (stage)
+    PRIMARY KEY (version_id, stage)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='灰度发布表';
 
 -- 发布历史表
@@ -29,14 +28,12 @@ CREATE TABLE IF NOT EXISTS publish_history (
     gmt_create DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     gmt_modified DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (version_id, gmt_create)
-    KEY idx_version_id (version_id),
-    KEY idx_config_type_stage (config_type, stage)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='发布历史表';
 
 -- 数据源配置表
 CREATE TABLE IF NOT EXISTS conf_data_source_config (
     `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT COMMENT '主键',
-    `gmt_create` datetime NOT NULL COMMENT '创建时间', 
+    `gmt_create` datetime NOT NULL COMMENT '创建时间',
     `gmt_modified` datetime NOT NULL COMMENT '修改时间',
     `version_id` varchar(255) DEFAULT NULL COMMENT '版本ID',
     `name` varchar(255) NOT NULL COMMENT '数据源名称',
@@ -56,7 +53,7 @@ CREATE TABLE IF NOT EXISTS conf_data_source_config (
     `worker_config` varchar(1024) DEFAULT NULL COMMENT '消费配置',
     `comment` varchar(255) DEFAULT NULL COMMENT '备注',
     PRIMARY KEY (`id`),
-    UNIQUE KEY `uk_name` (`name`(128))
+    INDEX idx_name (`name`(128))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='操作审计数据源表';
 
 -- API元数据配置表
@@ -90,13 +87,13 @@ CREATE TABLE IF NOT EXISTS api_record_config (
     gateway_code VARCHAR(64) NOT NULL COMMENT '网关编码',
     api_version VARCHAR(64) NOT NULL COMMENT 'API版本',
     api_name VARCHAR(64) NOT NULL COMMENT 'API名称',
-    basic_config VARCHAR(15000) COMMENT '基础配置JSON',
-    event_config VARCHAR(15000) COMMENT '事件配置JSON',
-    user_identity_config VARCHAR(15000) COMMENT '用户身份配置JSON',
-    request_config VARCHAR(15000) COMMENT '请求配置JSON',
-    response_config VARCHAR(15000) COMMENT '响应配置JSON',
-    filter_config VARCHAR(15000) COMMENT '过滤配置JSON',
-    reference_resource_config VARCHAR(15000) COMMENT '引用资源配置JSON',
+    basic_config TEXT COMMENT '基础配置JSON',
+    event_config TEXT COMMENT '事件配置JSON',
+    user_identity_config TEXT COMMENT '用户身份配置JSON',
+    request_config TEXT COMMENT '请求配置JSON',
+    response_config TEXT COMMENT '响应配置JSON',
+    filter_config TEXT COMMENT '过滤配置JSON',
+    reference_resource_config TEXT COMMENT '引用资源配置JSON',
     gmt_create DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     gmt_modified DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='API记录配置表'; 

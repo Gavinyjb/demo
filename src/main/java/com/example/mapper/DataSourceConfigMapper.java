@@ -73,7 +73,7 @@ public interface DataSourceConfigMapper {
             "FROM conf_data_source_config d " +
             "INNER JOIN config_version v ON d.version_id = v.version_id " +
             "LEFT JOIN config_gray_release g ON v.version_id = g.version_id " +
-            "WHERE v.config_status = 'PUBLISHED' " +
+            "WHERE v.config_status IN ('PUBLISHED', 'GRAYING') " +
             "AND (g.stage = #{stage} OR g.stage = 'FULL')")
     List<DataSourceConfig> findByStage(@Param("stage") String stage);
 
@@ -96,7 +96,7 @@ public interface DataSourceConfigMapper {
             "INNER JOIN config_version v ON d.version_id = v.version_id " +
             "LEFT JOIN config_gray_release g ON v.version_id = g.version_id " +
             "WHERE d.name = #{name} " +
-            "AND v.config_status = 'PUBLISHED' " +
+            "AND v.config_status IN ('PUBLISHED', 'GRAYING') " +
             "AND (g.stage = #{stage} OR g.stage = 'FULL') " +
             "ORDER BY g.stage = 'FULL' DESC, v.gmt_modified DESC " +
             "LIMIT 1")

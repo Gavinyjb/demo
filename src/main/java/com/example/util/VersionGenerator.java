@@ -8,41 +8,61 @@ import java.util.concurrent.atomic.AtomicInteger;
 @Component
 public class VersionGenerator {
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyyMMdd");
-    private final AtomicInteger dataSourceCounter = new AtomicInteger(1);
-    private final AtomicInteger apiRecordCounter = new AtomicInteger(1);
-    private final AtomicInteger apiMetaCounter = new AtomicInteger(1);
-    private String currentDate = LocalDateTime.now().format(DATE_FORMATTER);
+    private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("HHmmss");
+    
+    // 每个配置类型使用独立的序列号
+    private final AtomicInteger dataSourceCounter = new AtomicInteger(0);
+    private final AtomicInteger apiRecordCounter = new AtomicInteger(0);
+    private final AtomicInteger apiMetaCounter = new AtomicInteger(0);
+    
+    // 记录上一次生成的时间戳
+    private volatile String lastTimestamp = generateTimestamp();
 
     /**
      * 生成数据源配置版本号
-     * 格式：DS + 年月日 + 5位序号，如：DS2024011500001
+     * 格式：DS + 年月日 + 时分秒 + 3位序号，如：DS20240115123456001
      */
-    public String generateDataSourceVersion() {
+    public synchronized String generateDataSourceVersion() {
         return generateVersion("DS", dataSourceCounter);
     }
 
     /**
      * 生成API记录配置版本号
-     * 格式：AR + 年月日 + 5位序号，如：AR2024011500001
      */
-    public String generateApiRecordVersion() {
+    public synchronized String generateApiRecordVersion() {
         return generateVersion("AR", apiRecordCounter);
     }
 
     /**
      * 生成API Meta配置版本号
-     * 格式：AM + 年月日 + 5位序号，如：AM2024011500001
      */
-    public String generateApiMetaVersion() {
+    public synchronized String generateApiMetaVersion() {
         return generateVersion("AM", apiMetaCounter);
     }
 
     private String generateVersion(String prefix, AtomicInteger counter) {
-        String today = LocalDateTime.now().format(DATE_FORMATTER);
-        if (!today.equals(currentDate)) {
-            currentDate = today;
-            counter.set(1);
+        String currentTimestamp = generateTimestamp();
+        
+        // 如果时间戳发生变化，重置计数器
+        if (!currentTimestamp.equals(lastTimestamp)) {
+            counter.set(0);
+            lastTimestamp = currentTimestamp;
         }
-        return String.format("%s%s%05d", prefix, today, counter.getAndIncrement());
+        
+        // 序号达到最大值时重置
+        if (counter.get() >= 999) {
+            counter.set(0);
+        }
+        
+        return String.format("%s%s%03d", 
+            prefix, 
+            currentTimestamp,
+            counter.incrementAndGet()
+        );
+    }
+    
+    private String generateTimestamp() {
+        LocalDateTime now = LocalDateTime.now();
+        return now.format(DATE_FORMATTER) + now.format(TIME_FORMATTER);
     }
 } 
