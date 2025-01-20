@@ -98,7 +98,7 @@ public interface DataSourceConfigMapper {
             "WHERE d.name = #{name} " +
             "AND v.config_status IN ('PUBLISHED', 'GRAYING') " +
             "AND (g.stage = #{stage} OR g.stage = 'FULL') " +
-            "ORDER BY g.stage = 'FULL' DESC, v.gmt_modified DESC " +
+            "ORDER BY g.stage = #{stage} DESC, v.gmt_modified DESC " +
             "LIMIT 1")
     DataSourceConfig findActiveConfigByNameAndStage(
         @Param("name") String name,
