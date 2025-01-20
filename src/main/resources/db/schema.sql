@@ -6,7 +6,7 @@ CREATE TABLE IF NOT EXISTS config_version (
     config_status VARCHAR(64) NOT NULL COMMENT '配置状态:DRAFT|PUBLISHED|DEPRECATED',
     gmt_create DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     gmt_modified DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    UNIQUE KEY uk_identifier_type (identifier, config_type)
+    KEY idx_identifier_type_status (identifier, config_type, config_status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='配置版本表';
 
 -- 灰度发布表
@@ -15,7 +15,8 @@ CREATE TABLE IF NOT EXISTS config_gray_release (
     stage VARCHAR(64) NOT NULL COMMENT '灰度阶段:STAGE_1|STAGE_2|FULL',
     gmt_create DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     gmt_modified DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    PRIMARY KEY (version_id, stage)
+    PRIMARY KEY (version_id, stage),
+    KEY idx_stage (stage)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='灰度发布表';
 
 -- 发布历史表
@@ -28,6 +29,8 @@ CREATE TABLE IF NOT EXISTS publish_history (
     gmt_create DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     gmt_modified DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (version_id, gmt_create)
+    KEY idx_version_id (version_id),
+    KEY idx_config_type_stage (config_type, stage)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='发布历史表';
 
 -- 数据源配置表

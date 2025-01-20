@@ -63,4 +63,7 @@ public interface PublishHistoryMapper {
         @Param("identifier") String identifier,
         @Param("configType") String configType
     );
+
+    @Delete("DELETE FROM publish_history WHERE version_id = #{versionId}")
+    void deleteByVersionId(@Param("versionId") String versionId);
 } 

@@ -51,26 +51,13 @@ public class DataSourceConfigService implements BaseConfigService<DataSourceConf
             // 设置版本信息
             config.setVersionId(versionGenerator.generateDataSourceVersion());
             config.setConfigStatus(ConfigStatus.DRAFT.name());
-            config.setStatus(0); // 数据源状态：未上线
 
             log.info("Inserting version record: {}", config);
             // 先插入版本信息
-            try {
-                dataSourceConfigMapper.insertVersion(config);
-            } catch (Exception e) {
-                log.error("Failed to insert version record", e);
-                throw e;
-            }
-            
+            dataSourceConfigMapper.insertVersion(config);
             log.info("Inserting data source record: {}", config);
             // 再插入配置信息
-            try {
-                dataSourceConfigMapper.insertDataSource(config);
-            } catch (Exception e) {
-                log.error("Failed to insert data source record", e);
-                throw e;
-            }
-            
+            dataSourceConfigMapper.insertDataSource(config);            
             return DataSourceConfigBO.fromDO(config);
         } catch (Exception e) {
             log.error("Failed to create data source config: {}", config, e);
@@ -186,5 +173,15 @@ public class DataSourceConfigService implements BaseConfigService<DataSourceConf
                 .collect(Collectors.toList()))
             .deprecatedVersionIds(deprecatedVersionIds)
             .build();
+    }
+
+    @Override
+    public void deleteByVersionId(String versionId) {
+        dataSourceConfigMapper.deleteByVersionId(versionId);
+    }
+
+    @Override
+    public int getMaxDeprecatedVersions() {
+        return 5;
     }
 } 

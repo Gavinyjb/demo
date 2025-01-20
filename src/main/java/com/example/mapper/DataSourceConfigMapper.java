@@ -77,12 +77,8 @@ public interface DataSourceConfigMapper {
             "AND (g.stage = #{stage} OR g.stage = 'FULL')")
     List<DataSourceConfig> findByStage(@Param("stage") String stage);
 
-    @Delete("DELETE d, v, g " +
-            "FROM conf_data_source_config d " +
-            "LEFT JOIN config_version v ON d.version_id = v.version_id " +
-            "LEFT JOIN config_gray_release g ON v.version_id = g.version_id " +
-            "WHERE d.version_id = #{versionId}")
-    void deleteByVersionId(String versionId);
+    @Delete("DELETE FROM conf_data_source_config WHERE version_id = #{versionId}")
+    void deleteByVersionId(@Param("versionId") String versionId);
 
     @Delete("DELETE d, v, g " +
             "FROM conf_data_source_config d " +

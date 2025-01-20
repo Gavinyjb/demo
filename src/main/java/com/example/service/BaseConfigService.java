@@ -48,4 +48,11 @@ public interface BaseConfigService<T extends BaseVersionedConfig> {
      * 获取指定标识在指定地域生效的配置
      */
     T getActiveByIdentifierAndRegion(String identifier, String region);
+
+    void deleteByVersionId(String versionId);
+
+    /**
+     * 获取需要保留的历史版本数
+     */
+    int getMaxDeprecatedVersions();
 } 

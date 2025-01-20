@@ -2,6 +2,7 @@ package com.example.controller;
 
 import com.example.dto.PublishStageRequest;
 import com.example.dto.RollbackRequest;
+import com.example.dto.GetPublishHistoryRequest;
 import com.example.enums.GrayStage;
 import com.example.model.PublishHistory;
 import com.example.service.PublishService;
@@ -26,16 +27,16 @@ public class PublishController {
     private PublishService publishService;
 
     /**
-     * 发布配置
+     * 按阶段发布配置
      */
-    @PostMapping
-    @Operation(summary = "发布配置")
-    public ResponseEntity<Void> publish(@RequestBody PublishStageRequest request) {
-        log.info("Publishing config: {}", request);
-        publishService.publishConfig(
+    @PostMapping("/stage")
+    @Operation(summary = "按阶段发布配置")
+    public ResponseEntity<Void> publishByStage(@RequestBody PublishStageRequest request) {
+        log.info("Publishing config by stage: {}", request);
+        publishService.publishByStage(
             request.getVersionId(),
             request.getConfigType(),
-            request.getStage(),
+            GrayStage.valueOf(request.getStage()),
             request.getOperator()
         );
         return ResponseEntity.ok().build();
@@ -83,37 +84,28 @@ public class PublishController {
     /**
      * 获取发布历史
      */
-    @GetMapping("/history")
+    @PostMapping("/history")
     @Operation(summary = "获取发布历史")
     public ResponseEntity<List<PublishHistory>> getPublishHistory(
-        @RequestParam(required = false) String versionId,
-        @RequestParam(required = false) String configType,
-        @RequestParam(required = false) String stage
-    ) {
-        log.info("Getting publish history for versionId: {}, configType: {}, stage: {}", 
-            versionId, configType, stage);
+            @RequestBody GetPublishHistoryRequest request) {
+        log.info("Getting publish history: {}", request);
         
-        if (versionId != null) {
-            return ResponseEntity.ok(publishService.getPublishHistory(versionId));
-        } else if (configType != null && stage != null) {
-            return ResponseEntity.ok(publishService.getHistoryByTypeAndStage(configType, stage));
+        if (request.getVersionId() != null) {
+            return ResponseEntity.ok(publishService.getPublishHistory(request.getVersionId()));
+        } else if (request.getConfigType() != null && request.getStage() != null) {
+            return ResponseEntity.ok(publishService.getHistoryByTypeAndStage(
+                request.getConfigType(), 
+                request.getStage()
+            ));
         } else {
             throw new IllegalArgumentException("Must provide either versionId or (configType and stage)");
         }
     }
 
-    @PostMapping("/stage")
-    @Operation(summary = "按阶段发布配置")
-    public ResponseEntity<Void> publishByStage(@RequestBody PublishStageRequest request) {
-        publishService.publishByStage(
-            request.getVersionId(),
-            request.getConfigType(), GrayStage.valueOf(request.getStage()),
-            request.getOperator()
-        );
-        return ResponseEntity.ok().build();
-    }
-
-    @GetMapping("/stages")
+    /**
+     * 获取所有灰度阶段信息
+     */
+    @PostMapping("/stages")
     @Operation(summary = "获取所有灰度阶段信息")
     public ResponseEntity<Map<String, List<String>>> getGrayStages() {
         Map<String, List<String>> stages = new HashMap<>();

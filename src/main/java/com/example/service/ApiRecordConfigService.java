@@ -171,4 +171,14 @@ public class ApiRecordConfigService implements BaseConfigService<ApiRecordConfig
             .deprecatedVersionIds(deprecatedVersionIds)
             .build();
     }
+
+    @Override
+    public void deleteByVersionId(String versionId) {
+        apiRecordConfigMapper.deleteByVersionId(versionId);
+    }
+
+    @Override
+    public int getMaxDeprecatedVersions() {
+        return 8;
+    }
 } 

@@ -159,4 +159,14 @@ public class ApiMetaConfigService implements BaseConfigService<ApiMetaConfig> {
             .deprecatedVersionIds(deprecatedVersionIds)
             .build();
     }
+
+    @Override
+    public void deleteByVersionId(String versionId) {
+        apiMetaConfigMapper.deleteByVersionId(versionId);
+    }
+
+    @Override
+    public int getMaxDeprecatedVersions() {
+        return 8;
+    }
 } 

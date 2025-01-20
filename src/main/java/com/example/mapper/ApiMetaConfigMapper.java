@@ -68,12 +68,8 @@ public interface ApiMetaConfigMapper {
     @Insert("INSERT INTO config_gray_release (version_id, stage) VALUES (#{versionId}, #{stage})")
     void insertGrayRelease(@Param("versionId") String versionId, @Param("stage") String stage);
 
-    @Delete("DELETE m, v, g " +
-            "FROM amp_api_meta m " +
-            "LEFT JOIN config_version v ON m.version_id = v.version_id " +
-            "LEFT JOIN config_gray_release g ON v.version_id = g.version_id " +
-            "WHERE m.version_id = #{versionId}")
-    void deleteByVersionId(String versionId);
+    @Delete("DELETE FROM amp_api_meta WHERE version_id = #{versionId}")
+    void deleteByVersionId(@Param("versionId") String versionId);
 
     @Select("SELECT m.*, v.config_status " +
             "FROM amp_api_meta m " +

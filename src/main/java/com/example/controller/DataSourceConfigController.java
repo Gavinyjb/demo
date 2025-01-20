@@ -1,11 +1,8 @@
 package com.example.controller;
 
-import com.example.model.DataSourceConfig;
 import com.example.model.bo.DataSourceConfigBO;
 import com.example.service.DataSourceConfigService;
-import com.example.util.RegionProvider;
-import com.example.dto.ConfigDiffRequest;
-import com.example.dto.ConfigDiffResponse;
+import com.example.dto.*;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,8 +10,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Map;
-import java.util.HashMap;
 
 @RestController
 @RequestMapping("/api/datasource/configs")
@@ -23,14 +18,11 @@ public class DataSourceConfigController {
     
     @Autowired
     private DataSourceConfigService dataSourceConfigService;
-    
-    @Autowired
-    private RegionProvider regionProvider;
 
     /**
      * 创建数据源配置
      */
-    @PostMapping
+    @PostMapping("/create")
     @Operation(summary = "创建数据源配置")
     public ResponseEntity<DataSourceConfigBO> create(@RequestBody DataSourceConfigBO config) {
         return ResponseEntity.ok(dataSourceConfigService.create(config));
@@ -39,56 +31,59 @@ public class DataSourceConfigController {
     /**
      * 更新数据源配置
      */
-    @PutMapping("/{versionId}")
+    @PostMapping("/update")
     @Operation(summary = "更新数据源配置")
-    public DataSourceConfig update(
-        @PathVariable String versionId,
-        @RequestBody DataSourceConfigBO config
-    ) {
-        return dataSourceConfigService.update(versionId, config);
+    public ResponseEntity<DataSourceConfigBO> update(@RequestBody UpdateConfigRequest request) {
+        return ResponseEntity.ok(
+            dataSourceConfigService.update(request.getVersionId(), request.getConfig())
+        );
     }
 
     /**
      * 获取指定版本的配置
      */
-    @GetMapping("/{versionId}")
-    public ResponseEntity<DataSourceConfigBO> getByVersionId(@PathVariable String versionId) {
-        return ResponseEntity.ok(dataSourceConfigService.findByVersionId(versionId));
+    @PostMapping("/get")
+    @Operation(summary = "获取指定版本的配置")
+    public ResponseEntity<DataSourceConfigBO> getConfig(@RequestBody GetConfigRequest request) {
+        return ResponseEntity.ok(dataSourceConfigService.findByVersionId(request.getVersionId()));
     }
 
     /**
      * 获取所有已发布的配置
      */
-    @GetMapping("/published")
-    public List<DataSourceConfigBO> getAllPublished() {
-        return dataSourceConfigService.getAllPublished();
+    @PostMapping("/published")
+    @Operation(summary = "获取所有已发布的配置")
+    public ResponseEntity<List<DataSourceConfigBO>> getAllPublished() {
+        return ResponseEntity.ok(dataSourceConfigService.getAllPublished());
     }
 
     /**
      * 获取指定数据源的所有已发布配置
      */
-    @GetMapping("/published/{source}")
-    public List<DataSourceConfigBO> getPublishedBySource(@PathVariable String source) {
-        return dataSourceConfigService.getPublishedByIdentifier(source);
+    @PostMapping("/published/by-source")
+    @Operation(summary = "获取指定数据源的所有已发布配置")
+    public ResponseEntity<List<DataSourceConfigBO>> getPublishedBySource(@RequestBody GetConfigRequest request) {
+        return ResponseEntity.ok(dataSourceConfigService.getPublishedByIdentifier(request.getName()));
     }
 
     /**
      * 获取指定数据源在指定地域生效的配置
      */
-    @GetMapping("/active/{source}")
-    public DataSourceConfig getActiveBySource(
-        @PathVariable String source,
-        @RequestParam String region
-    ) {
-        return dataSourceConfigService.getActiveByIdentifierAndRegion(source, region);
+    @PostMapping("/active")
+    @Operation(summary = "获取指定数据源在指定地域生效的配置")
+    public ResponseEntity<DataSourceConfigBO> getActiveConfig(@RequestBody GetConfigRequest request) {
+        return ResponseEntity.ok(
+            dataSourceConfigService.getActiveByIdentifierAndRegion(request.getName(), request.getRegion())
+        );
     }
 
     /**
      * 获取指定地域生效的所有配置
      */
-    @GetMapping("/active")
-    public List<DataSourceConfigBO> getActiveByRegion(@RequestParam String region) {
-        return dataSourceConfigService.getActiveByRegion(region);
+    @PostMapping("/active/by-region")
+    @Operation(summary = "获取指定地域生效的所有配置")
+    public ResponseEntity<List<DataSourceConfigBO>> getActiveByRegion(@RequestBody GetConfigRequest request) {
+        return ResponseEntity.ok(dataSourceConfigService.getActiveByRegion(request.getRegion()));
     }
 
     /**
@@ -96,7 +91,8 @@ public class DataSourceConfigController {
      */
     @PostMapping("/diff")
     @Operation(summary = "获取配置变更信息")
-    public ConfigDiffResponse<DataSourceConfigBO> getConfigDiff(@RequestBody ConfigDiffRequest request) {
-        return dataSourceConfigService.getConfigDiff(request);
+    public ResponseEntity<ConfigDiffResponse<DataSourceConfigBO>> getConfigDiff(
+            @RequestBody ConfigDiffRequest request) {
+        return ResponseEntity.ok(dataSourceConfigService.getConfigDiff(request));
     }
 } 

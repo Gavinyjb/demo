@@ -83,4 +83,7 @@ public interface ApiRecordConfigMapper {
             "WHERE v.config_status = 'PUBLISHED' " +
             "AND (g.stage = #{stage} OR g.stage = 'FULL')")
     List<ApiRecordConfig> findByStage(@Param("stage") String stage);
+
+    @Delete("DELETE FROM api_record_config WHERE version_id = #{versionId}")
+    void deleteByVersionId(@Param("versionId") String versionId);
 } 
