@@ -88,8 +88,7 @@ public class DataSourceConfigService implements BaseConfigService<DataSourceConf
         
         // 设置版本信息
         newConfigBO.setVersionId(versionGenerator.generateDataSourceVersion());
-        // 保持原有数据源状态
-        newConfigBO.setStatus(oldConfig.getStatus());
+        newConfigBO.setConfigStatus(ConfigStatus.DRAFT.name());
         
         try {
             // 先插入版本信息
@@ -97,9 +96,6 @@ public class DataSourceConfigService implements BaseConfigService<DataSourceConf
             
             // 再插入配置信息
             dataSourceConfigMapper.insertDataSource(newConfigBO.toDO());
-            
-            // 清理旧的草稿版本
-            cleanupOldVersions(newConfigBO.getName());
             
             return newConfigBO;
         } catch (Exception e) {
