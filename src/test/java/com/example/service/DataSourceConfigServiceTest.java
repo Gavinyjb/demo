@@ -156,6 +156,70 @@ public class DataSourceConfigServiceTest {
         assertEquals(ConfigStatus.PUBLISHED.name(), publishedConfig.getConfigStatus());
     }
     
+    @Test
+    public void testRollbackGrayConfig() throws InterruptedException {
+        // 1. 创建配置并发布到全量
+        DataSourceConfigBO config1 = createTestConfig("test-source");
+        DataSourceConfigBO created1 = dataSourceConfigService.create(config1);
+        publishService.publishByStage(
+            created1.getVersionId(),
+            "DATA_SOURCE",
+            GrayStage.FULL,
+            "test-user"
+        );
+
+        // 2. 更新配置并灰度发布到 STAGE_1
+        DataSourceConfigBO config2 = createTestConfig("test-source");
+        config2.getWorkerConfigObject().setFetchIntervalMillis(2000);
+        DataSourceConfigBO updated = dataSourceConfigService.update(
+            created1.getVersionId(), 
+            config2
+        );
+        publishService.publishByStage(
+            updated.getVersionId(),
+            "DATA_SOURCE",
+            GrayStage.STAGE_1,
+            "test-user"
+        );
+
+        // 3. 验证 STAGE_1 地域可以查询到新版本，STAGE_2 地域查询到旧版本
+        DataSourceConfigBO stage1Config = dataSourceConfigService
+            .getActiveByIdentifierAndRegion("test-source", "ap-southeast-2");
+        assertNotNull(stage1Config);
+        assertEquals(updated.getVersionId(), stage1Config.getVersionId());
+        
+        DataSourceConfigBO stage2Config = dataSourceConfigService
+            .getActiveByIdentifierAndRegion("test-source", "cn-chengdu");
+        assertNotNull(stage2Config);
+        assertEquals(created1.getVersionId(), stage2Config.getVersionId());
+
+        //等待 1s
+        Thread.sleep(1000);
+
+        // 4. 终止灰度发布
+        publishService.rollbackGrayConfig(
+            "test-source",
+            "DATA_SOURCE",
+            "test-user"
+        );
+
+        // 5. 验证所有地域都查询到旧版本
+        DataSourceConfigBO stage1ConfigAfterRollback = dataSourceConfigService
+            .getActiveByIdentifierAndRegion("test-source", "ap-southeast-2");
+        assertNotNull(stage1ConfigAfterRollback);
+        assertEquals(created1.getVersionId(), stage1ConfigAfterRollback.getVersionId());
+        
+        DataSourceConfigBO stage2ConfigAfterRollback = dataSourceConfigService
+            .getActiveByIdentifierAndRegion("test-source", "cn-chengdu");
+        assertNotNull(stage2ConfigAfterRollback);
+        assertEquals(created1.getVersionId(), stage2ConfigAfterRollback.getVersionId());
+
+        // 6. 验证灰度版本已被废弃
+        DataSourceConfigBO rolledBackConfig = dataSourceConfigService
+            .findByVersionId(updated.getVersionId());
+        assertEquals(ConfigStatus.DEPRECATED.name(), rolledBackConfig.getConfigStatus());
+    }
+    
     private DataSourceConfigBO createTestConfig(String name) {
         DataSourceConfigBO config = new DataSourceConfigBO();
         config.setName(name);
