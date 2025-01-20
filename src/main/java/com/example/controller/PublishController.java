@@ -59,26 +59,36 @@ public class PublishController {
     }
 
     /**
-     * 回滚配置
+     * 终止灰度发布
      */
-    @PostMapping("/rollback")
-    @Operation(summary = "回滚配置")
-    public ResponseEntity<Void> rollback(@RequestBody RollbackRequest request) {
-        log.info("Rolling back config: {}", request);
-        if (request.getTargetVersionId() != null) {
-            publishService.rollbackToVersion(
-                request.getIdentifier(),
-                request.getTargetVersionId(),
-                request.getConfigType(),
-                request.getOperator()
-            );
-        } else {
-            publishService.rollbackToPrevious(
-                request.getIdentifier(),
-                request.getConfigType(),
-                request.getOperator()
-            );
+    @PostMapping("/rollback/gray")
+    @Operation(summary = "终止灰度发布", description = "终止当前正在灰度中的配置，使用全量发布的配置")
+    public ResponseEntity<Void> rollbackGray(@RequestBody RollbackRequest request) {
+        log.info("Rolling back graying config: {}", request);
+        publishService.rollbackGrayConfig(
+            request.getIdentifier(),
+            request.getConfigType(),
+            request.getOperator()
+        );
+        return ResponseEntity.ok().build();
+    }
+
+    /**
+     * 回滚到历史版本
+     */
+    @PostMapping("/rollback/version")
+    @Operation(summary = "回滚到历史版本", description = "废弃当前生效的配置，使用指定的历史版本")
+    public ResponseEntity<Void> rollbackVersion(@RequestBody RollbackRequest request) {
+        log.info("Rolling back to version: {}", request);
+        if (request.getTargetVersionId() == null) {
+            throw new IllegalArgumentException("Target version ID is required");
         }
+        publishService.rollbackToVersion(
+            request.getIdentifier(),
+            request.getTargetVersionId(),
+            request.getConfigType(),
+            request.getOperator()
+        );
         return ResponseEntity.ok().build();
     }
 

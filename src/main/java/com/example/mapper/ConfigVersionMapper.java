@@ -51,4 +51,28 @@ public interface ConfigVersionMapper {
         @Param("identifier") String identifier,
         @Param("configType") String configType
     );
+
+    @Select("SELECT * FROM config_version " +
+            "WHERE identifier = #{identifier} " +
+            "AND config_type = #{configType} " +
+            "AND config_status = #{status} " +
+            "ORDER BY gmt_modified DESC LIMIT 1")
+    ConfigVersion findVersionByIdentifierAndStatus(
+        @Param("identifier") String identifier,
+        @Param("configType") String configType,
+        @Param("status") String status
+    );
+
+    @Select("SELECT v.* FROM config_version v " +
+            "INNER JOIN config_gray_release g ON v.version_id = g.version_id " +
+            "WHERE v.identifier = #{identifier} " +
+            "AND v.config_type = #{configType} " +
+            "AND v.config_status = 'PUBLISHED' " +
+            "AND v.version_id != #{currentVersionId} " +
+            "AND g.stage = 'FULL'")
+    List<ConfigVersion> findPublishedFullVersionsByIdentifier(
+        @Param("identifier") String identifier,
+        @Param("configType") String configType,
+        @Param("currentVersionId") String currentVersionId
+    );
 } 

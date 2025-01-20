@@ -13,8 +13,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.sql.SQLIntegrityConstraintViolationException;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * 配置发布服务
@@ -43,6 +45,8 @@ public class PublishService {
     @Autowired
     private ConfigGrayReleaseMapper grayReleaseMapper;
 
+    private static final int MAX_RETRY_TIMES = 3;
+    private static final long RETRY_DELAY_MS = 1000;
 
     /**
      * 回滚配置
@@ -89,21 +93,34 @@ public class PublishService {
      */
     @Transactional(rollbackFor = Exception.class)
     public void rollbackToVersion(String identifier, String targetVersionId, String configType, String operator) {
-        // 获取当前生效的版本
+        // 1. 查找目标版本
+        ConfigVersion targetVersion = configVersionMapper.findByVersionId(targetVersionId);
+        if (targetVersion == null || !ConfigStatus.DEPRECATED.name().equals(targetVersion.getConfigStatus())) {
+            throw new RuntimeException("Invalid target version");
+        }
+
+        // 2. 废弃当前生效的版本
         ConfigVersion currentVersion = configVersionMapper.findActiveVersionByIdentifier(identifier, configType);
         if (currentVersion != null) {
-            // 废弃当前版本
-            deprecateConfig(currentVersion.getVersionId(), configType, operator);
+            configVersionMapper.updateStatus(currentVersion.getVersionId(), ConfigStatus.DEPRECATED.name());
+            grayReleaseMapper.deleteByVersionId(currentVersion.getVersionId());
         }
 
-        // 重新发布目标版本
-        ConfigVersion targetVersion = configVersionMapper.findByVersionId(targetVersionId);
-        if (targetVersion == null) {
-            throw new RuntimeException("Target version not found: " + targetVersionId);
-        }
+        // 3. 激活目标版本
+        configVersionMapper.updateStatus(targetVersionId, ConfigStatus.PUBLISHED.name());
+        grayReleaseMapper.insert(targetVersionId, GrayStage.FULL.name());
 
-        // 使用 publishByStage 重新发布
-        publishByStage(targetVersionId, configType, GrayStage.FULL, operator);
+        // 4. 记录发布历史
+        PublishHistory history = PublishHistory.builder()
+            .versionId(targetVersionId)
+            .configType(configType)
+            .configStatus(ConfigStatus.PUBLISHED.name())
+            .stage(GrayStage.FULL.name())
+            .operator(operator)
+            .build();
+        publishHistoryMapper.insert(history);
+        
+        log.info("Successfully rolled back to version: {}", targetVersionId);
     }
 
     private List<? extends BaseVersionedConfig> getPublishedConfigs(String identifier, String configType) {
@@ -136,63 +153,122 @@ public class PublishService {
      */
     @Transactional(rollbackFor = Exception.class)
     public void publishByStage(String versionId, String configType, GrayStage stage, String operator) {
-        log.info("Publishing config {} to stage {}", versionId, stage);
-        
+        int retryCount = 0;
+        while (true) {
+            try {
+                doPublishByStage(versionId, configType, stage, operator);
+                break;
+            } catch (Exception e) {
+                if (isDuplicateKeyError(e) && retryCount < MAX_RETRY_TIMES) {
+                    retryCount++;
+                    log.warn("Duplicate key error when publishing, will retry after {} ms. Retry count: {}", 
+                        RETRY_DELAY_MS, retryCount);
+                    try {
+                        Thread.sleep(RETRY_DELAY_MS);
+                    } catch (InterruptedException ie) {
+                        Thread.currentThread().interrupt();
+                        throw new RuntimeException("Publishing interrupted", ie);
+                    }
+                } else {
+                    throw e;
+                }
+            }
+        }
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    public void doPublishByStage(String versionId, String configType, GrayStage stage, String operator) {
         // 1. 验证配置版本
         ConfigVersion version = configVersionMapper.findByVersionId(versionId);
         if (version == null) {
             throw new RuntimeException("Config version not found: " + versionId);
         }
 
-        // 2. 检查当前版本状态
-        if (ConfigStatus.DEPRECATED.name().equals(version.getConfigStatus())) {
-            throw new RuntimeException("Cannot publish deprecated version: " + versionId);
+        // 2. 检查是否存在灰度中的配置
+        if (stage != GrayStage.FULL) {
+            ConfigVersion grayingVersion = configVersionMapper.findVersionByIdentifierAndStatus(
+                version.getIdentifier(),
+                configType,
+                ConfigStatus.GRAYING.name()
+            );
+            if (grayingVersion != null && !grayingVersion.getVersionId().equals(versionId)) {
+                throw new IllegalStateException(
+                    String.format("Config %s already has a graying version: %s", 
+                        version.getIdentifier(), 
+                        grayingVersion.getVersionId()
+                    )
+                );
+            }
+
+            // 检查当前阶段
+            String currentStage = grayReleaseMapper.findStageByVersionId(versionId);
+            if (currentStage != null && getStageOrder(stage) < getStageOrder(GrayStage.valueOf(currentStage))) {
+                throw new RuntimeException("Cannot publish to lower stage: " + stage);
+            }
         }
 
         // 3. 更新配置状态
-        String newStatus = stage == GrayStage.FULL ? 
+        String status = stage == GrayStage.FULL ? 
             ConfigStatus.PUBLISHED.name() : 
             ConfigStatus.GRAYING.name();
-        configVersionMapper.updateStatus(versionId, newStatus);
-        
+        configVersionMapper.updateStatus(versionId, status);
+
         // 4. 记录灰度发布信息
-        String currentStage = grayReleaseMapper.findStageByVersionId(versionId);
-        if (currentStage != null) {
-            if (GrayStage.valueOf(currentStage).ordinal() >= stage.ordinal()) {
-                throw new RuntimeException("Cannot publish to lower stage: " + stage);
-            }
-            grayReleaseMapper.deleteByVersionId(versionId);
-        }
+        grayReleaseMapper.deleteByVersionId(versionId);
         grayReleaseMapper.insert(versionId, stage.name());
-        
-        // 5. 如果是全量发布，需要废弃旧版本
+
+        // 5. 如果是全量发布，需要废弃旧的全量发布版本
         if (stage == GrayStage.FULL) {
             deprecateOldVersions(version.getIdentifier(), configType, versionId);
         }
-        
+
         // 6. 记录发布历史
         PublishHistory history = PublishHistory.builder()
             .versionId(versionId)
             .configType(configType)
-            .configStatus(newStatus)
+            .configStatus(status)
             .stage(stage.name())
             .operator(operator)
             .build();
         publishHistoryMapper.insert(history);
         
-        log.info("Successfully published config {} to stage {} with status {}", versionId, stage, newStatus);
+        log.info("Successfully published config {} to stage {} with status {}", versionId, stage, status);
+    }
+
+    private int getStageOrder(GrayStage stage) {
+        switch (stage) {
+            case STAGE_1:
+                return 1;
+            case STAGE_2:
+                return 2;
+            case FULL:
+                return 3;
+            default:
+                return 0;
+        }
     }
 
     /**
-     * 废弃旧版本
+     * 废弃旧的全量发布版本
      */
     private void deprecateOldVersions(String identifier, String configType, String currentVersionId) {
-        // 查找同一标识的其他已发布版本
-        List<ConfigVersion> publishedVersions = configVersionMapper.findPublishedVersionsByIdentifier(
+        // 查找同一标识的其他已发布且为全量发布的版本
+        List<ConfigVersion> publishedVersions = configVersionMapper.findPublishedFullVersionsByIdentifier(
             identifier, 
             configType,
             currentVersionId
         );
+        
+        // 检查全量发布版本数量
+        if (publishedVersions.size() != 1) {
+            log.error("Unexpected number of published full versions for {}: expected 1, got {}. Versions: {}", 
+                identifier, 
+                publishedVersions.size(),
+                publishedVersions.stream()
+                    .map(ConfigVersion::getVersionId)
+                    .collect(Collectors.joining(", "))
+            );
+        }
         
         // 将这些版本标记为废弃
         for (ConfigVersion oldVersion : publishedVersions) {
@@ -292,5 +368,47 @@ public class PublishService {
      */
     public List<PublishHistory> getHistoryByTypeAndStage(String configType, String stage) {
         return publishHistoryMapper.findByConfigTypeAndStage(configType, stage);
+    }
+
+    /**
+     * 终止灰度发布
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public void rollbackGrayConfig(String identifier, String configType, String operator) {
+        // 1. 查找当前灰度中的配置
+        ConfigVersion grayingVersion = configVersionMapper.findVersionByIdentifierAndStatus(
+            identifier, configType, ConfigStatus.GRAYING.name()
+        );
+        if (grayingVersion == null) {
+            throw new RuntimeException("No graying config found");
+        }
+
+        // 2. 废弃灰度配置
+        configVersionMapper.updateStatus(grayingVersion.getVersionId(), ConfigStatus.DEPRECATED.name());
+        grayReleaseMapper.deleteByVersionId(grayingVersion.getVersionId());
+
+        // 3. 记录发布历史
+        PublishHistory history = PublishHistory.builder()
+            .versionId(grayingVersion.getVersionId())
+            .configType(configType)
+            .configStatus(ConfigStatus.DEPRECATED.name())
+            .stage(null)
+            .operator(operator)
+            .build();
+        publishHistoryMapper.insert(history);
+        
+        log.info("Successfully rolled back graying config: {}", grayingVersion.getVersionId());
+    }
+
+    private boolean isDuplicateKeyError(Exception e) {
+        Throwable cause = e;
+        while (cause != null) {
+            if (cause instanceof SQLIntegrityConstraintViolationException) {
+                String message = cause.getMessage();
+                return message != null && message.contains("Duplicate entry");
+            }
+            cause = cause.getCause();
+        }
+        return false;
     }
 } 

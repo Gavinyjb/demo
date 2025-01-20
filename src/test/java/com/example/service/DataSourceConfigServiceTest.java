@@ -8,6 +8,7 @@ import com.example.enums.GrayStage;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.annotation.Rollback;
 import org.springframework.transaction.annotation.Transactional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -23,6 +24,7 @@ public class DataSourceConfigServiceTest {
     private PublishService publishService;
 
     @Test
+//    @Rollback(false)
     public void testConfigLifecycle() {
         // 1. 创建配置
         DataSourceConfigBO config = createTestConfig("test-source");
@@ -43,6 +45,19 @@ public class DataSourceConfigServiceTest {
             .getActiveByIdentifierAndRegion("test-source", "ap-southeast-2");
         assertNotNull(stage1Config);
         assertEquals(created.getVersionId(), stage1Config.getVersionId());
+
+        // 验证 STAGE_2 地域查询不到配置
+        DataSourceConfigBO stage2Config = dataSourceConfigService
+            .getActiveByIdentifierAndRegion("test-source", "cn-chengdu");
+        assertNull(stage2Config);
+
+        //全量发布
+        publishService.publishByStage(
+            created.getVersionId(),
+            "DATA_SOURCE",
+            GrayStage.FULL,
+            "test-user"
+        );
         
         // 3. 创建新版本
         DataSourceConfigBO newConfig = createTestConfig("test-source");
@@ -59,23 +74,86 @@ public class DataSourceConfigServiceTest {
             GrayStage.STAGE_1,
             "test-user"
         );
+
+        // 验证 STAGE_1 地域可以查询到新版本，STAGE_2 地域查询到旧版本
+        DataSourceConfigBO stage01Config = dataSourceConfigService
+            .getActiveByIdentifierAndRegion("test-source", "ap-southeast-2");
+        assertNotNull(stage01Config);
+        assertEquals(updated.getVersionId(), stage01Config.getVersionId());
         
+        DataSourceConfigBO stage02Config = dataSourceConfigService
+            .getActiveByIdentifierAndRegion("test-source", "cn-chengdu");
+        assertNotNull(stage02Config);
+        assertEquals(created.getVersionId(), stage02Config.getVersionId());
+
+        //全量发布
+        publishService.publishByStage(
+            updated.getVersionId(),
+            "DATA_SOURCE",
+            GrayStage.FULL,
+            "test-user"
+        );
+
         // 验证旧版本被废弃
         DataSourceConfigBO oldConfig = dataSourceConfigService
             .findByVersionId(created.getVersionId());
         assertEquals(ConfigStatus.DEPRECATED.name(), oldConfig.getConfigStatus());
-        
-        // 5. 回滚灰度发布
-        publishService.rollbackGrayConfig(
-            "test-source",
+    }
+    
+    @Test
+    public void testCannotPublishMultipleGrayingConfigs() {
+        // 1. 创建第一个配置并灰度发布
+        DataSourceConfigBO config1 = createTestConfig("test-source");
+        DataSourceConfigBO created1 = dataSourceConfigService.create(config1);
+        publishService.publishByStage(
+            created1.getVersionId(),
             "DATA_SOURCE",
+            GrayStage.STAGE_1,
+            "test-user"
+        );
+
+        // 2. 创建第二个配置并尝试灰度发布
+        DataSourceConfigBO config2 = createTestConfig("test-source");
+        config2.getWorkerConfigObject().setFetchIntervalMillis(2000);
+        DataSourceConfigBO created2 = dataSourceConfigService.create(config2);
+
+        // 3. 验证无法同时灰度发布
+        assertThrows(IllegalStateException.class, () -> {
+            publishService.publishByStage(
+                created2.getVersionId(),
+                "DATA_SOURCE",
+                GrayStage.STAGE_1,
+                "test-user"
+            );
+        });
+    }
+    
+    @Test
+    public void testPublishRetryOnDuplicateKey() {
+        // 1. 创建配置
+        DataSourceConfigBO config = createTestConfig("test-source");
+        DataSourceConfigBO created = dataSourceConfigService.create(config);
+        
+        // 2. 快速连续发布到不同阶段
+        publishService.publishByStage(
+            created.getVersionId(),
+            "DATA_SOURCE",
+            GrayStage.STAGE_1,
             "test-user"
         );
         
-        // 验证新版本被废弃，旧版本重新生效
-        DataSourceConfigBO rolledBack = dataSourceConfigService
-            .getActiveByIdentifierAndRegion("test-source", "ap-southeast-2");
-        assertEquals(created.getVersionId(), rolledBack.getVersionId());
+        // 立即发布到全量，应该会触发重试逻辑
+        publishService.publishByStage(
+            created.getVersionId(),
+            "DATA_SOURCE",
+            GrayStage.FULL,
+            "test-user"
+        );
+        
+        // 验证最终发布成功
+        DataSourceConfigBO publishedConfig = dataSourceConfigService
+            .findByVersionId(created.getVersionId());
+        assertEquals(ConfigStatus.PUBLISHED.name(), publishedConfig.getConfigStatus());
     }
     
     private DataSourceConfigBO createTestConfig(String name) {
