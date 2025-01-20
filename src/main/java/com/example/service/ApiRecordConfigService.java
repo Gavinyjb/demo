@@ -5,6 +5,7 @@ import com.example.dto.ConfigDiffResponse;
 import com.example.model.ApiRecordConfig;
 import com.example.mapper.ApiRecordConfigMapper;
 import com.example.enums.ConfigStatus;
+import com.example.model.bo.ApiRecordConfigBO;
 import com.example.util.RegionProvider;
 import com.example.util.VersionGenerator;
 import com.example.config.VersionProperties;
@@ -15,139 +16,137 @@ import java.util.List;
 import java.util.Set;
 import java.util.HashSet;
 import java.util.stream.Collectors;
+import org.springframework.beans.BeanUtils;
+import com.example.util.JsonUtils;
+import com.example.model.ConfigVersion;
+import com.example.mapper.ConfigVersionMapper;
+import com.example.exception.ConfigNotFoundException;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * API记录配置服务
  */
 @Service
-public class ApiRecordConfigService implements BaseConfigService<ApiRecordConfig> {
+@Slf4j
+public class ApiRecordConfigService implements BaseConfigService<ApiRecordConfigBO> {
     
     @Autowired
     private ApiRecordConfigMapper apiRecordConfigMapper;
-    
+
     @Autowired
     private VersionGenerator versionGenerator;
-    
+
     @Autowired
     private RegionProvider regionProvider;
-    
-    @Autowired
-    private VersionProperties versionProperties;
 
     @Override
-    @Transactional
-    public ApiRecordConfig create(ApiRecordConfig config) {
-        // 构建配置标识
-        String identifier = buildIdentifier(config);
-        
-        // 检查是否已存在相同标识的配置
-        List<ApiRecordConfig> existingConfigs = apiRecordConfigMapper.findPublishedConfigsByIdentifier(
-            config.getGatewayType(),
-            config.getGatewayCode(),
-            config.getApiVersion(),
-            config.getApiName()
-        );
-        if (!existingConfigs.isEmpty()) {
-            throw new RuntimeException("Already exists config with identifier: " + identifier);
-        }
-        
-        // 设置版本信息
-        config.setVersionId(versionGenerator.generateApiRecordVersion());
-        config.setConfigStatus(ConfigStatus.DRAFT.name());
-        
-        // 插入配置和版本信息
-        apiRecordConfigMapper.insertApiRecord(config);
-        apiRecordConfigMapper.insertVersion(config);
-        
-        return config;
-    }
+    @Transactional(rollbackFor = Exception.class)
+    public ApiRecordConfigBO create(ApiRecordConfigBO configBO) {
+        ApiRecordConfig config = configBO.toDO();
+        try {
+            // 检查是否已存在相同标识的配置
+            List<ApiRecordConfig> existingConfigs = apiRecordConfigMapper.findPublishedConfigsByIdentifier(
+                config.getGatewayType(),
+                config.getGatewayCode(),
+                config.getApiVersion(),
+                config.getApiName()
+            );
+            if (!existingConfigs.isEmpty()) {
+                throw new RuntimeException(String.format(
+                    "Already exists config with identifier: %s:%s:%s:%s",
+                    config.getGatewayType(),
+                    config.getGatewayCode(),
+                    config.getApiVersion(),
+                    config.getApiName()
+                ));
+            }
+            
+            // 设置版本信息
+            config.setVersionId(versionGenerator.generateApiRecordVersion());
+            config.setConfigStatus(ConfigStatus.DRAFT.name());
 
-    @Override
-    @Transactional
-    public ApiRecordConfig update(String oldVersionId, ApiRecordConfig newConfig) {
-        ApiRecordConfig oldConfig = findByVersionId(oldVersionId);
-        if (oldConfig == null) {
-            throw new RuntimeException("原配置版本不存在");
-        }
-        
-        // 设置版本信息
-        newConfig.setVersionId(versionGenerator.generateApiRecordVersion());
-        newConfig.setConfigStatus(ConfigStatus.DRAFT.name());
-        
-        // 插入配置和版本信息
-        apiRecordConfigMapper.insertApiRecord(newConfig);
-        apiRecordConfigMapper.insertVersion(newConfig);
-        
-        return newConfig;
-    }
-
-    @Override
-    public List<ApiRecordConfig> getAllPublished() {
-        return apiRecordConfigMapper.findAllPublished();
-    }
-
-    @Override
-    public ApiRecordConfig findByVersionId(String versionId) {
-        return apiRecordConfigMapper.findByVersionId(versionId);
-    }
-
-    @Override
-    @Transactional
-    public void updateStatus(String versionId, String status, String stage) {
-        // 更新版本状态
-        apiRecordConfigMapper.updateVersionStatus(versionId, status);
-        
-        // 如果是发布状态且指定了灰度阶段，则插入灰度发布记录
-        if (ConfigStatus.PUBLISHED.name().equals(status) && stage != null) {
-            apiRecordConfigMapper.insertGrayRelease(versionId, stage);
+            log.info("Inserting version record: {}", config);
+            // 先插入版本信息
+            apiRecordConfigMapper.insertVersion(config);
+            
+            log.info("Inserting api record: {}", config);
+            // 再插入配置信息
+            apiRecordConfigMapper.insert(config);
+            
+            return ApiRecordConfigBO.fromDO(config);
+        } catch (Exception e) {
+            log.error("Failed to create api record config: {}", config, e);
+            throw new RuntimeException("Failed to create api record config", e);
         }
     }
 
     @Override
-    public List<ApiRecordConfig> getActiveByRegion(String region) {
+    @Transactional(rollbackFor = Exception.class)
+    public ApiRecordConfigBO update(String versionId, ApiRecordConfigBO configBO) {
+        try {
+            // 1. 验证原配置
+            ApiRecordConfigBO oldConfig = findByVersionId(versionId);
+            if (oldConfig == null) {
+                throw new ConfigNotFoundException("Config not found: " + versionId);
+            }
+
+            // 2. 设置版本信息
+            ApiRecordConfig config = configBO.toDO();
+            config.setVersionId(versionGenerator.generateApiRecordVersion());
+            config.setConfigStatus(ConfigStatus.DRAFT.name());
+
+            log.info("Inserting version record for update: {}", config);
+            // 3. 先插入版本信息
+            apiRecordConfigMapper.insertVersion(config);
+
+            log.info("Inserting api record for update: {}", config);
+            // 4. 再插入配置信息
+            apiRecordConfigMapper.insert(config);
+
+            return ApiRecordConfigBO.fromDO(config);
+        } catch (Exception e) {
+            log.error("Failed to update api record config: {}", configBO, e);
+            throw new RuntimeException("Failed to update api record config", e);
+        }
+    }
+
+    @Override
+    public List<ApiRecordConfigBO> getAllPublished() {
+        return apiRecordConfigMapper.findAllPublished().stream()
+                .map(ApiRecordConfigBO::fromDO)
+                .collect(Collectors.toList());
+    }
+    @Override
+    public ApiRecordConfigBO findByVersionId(String versionId) {
+        return ApiRecordConfigBO.fromDO(apiRecordConfigMapper.findByVersionId(versionId));
+    }
+
+    @Override
+    public List<ApiRecordConfigBO> getActiveByRegion(String region) {
         String stage = regionProvider.getStageByRegion(region);
-        return apiRecordConfigMapper.findByStage(stage);
+        return apiRecordConfigMapper.findByStage(stage).stream()
+            .map(ApiRecordConfigBO::fromDO)
+            .collect(Collectors.toList());
     }
 
     @Override
-    public List<ApiRecordConfig> getPublishedByIdentifier(String identifier) {
-        String[] parts = identifier.split(":");
-        if (parts.length != 4) {
-            throw new IllegalArgumentException("Invalid API identifier format");
-        }
-        return apiRecordConfigMapper.findPublishedConfigsByIdentifier(
-            parts[0], parts[1], parts[2], parts[3]
-        );
+    public List<ApiRecordConfigBO> getPublishedByIdentifier(String identifier) {
+        return apiRecordConfigMapper.findPublishedByIdentifier(identifier).stream()
+            .map(ApiRecordConfigBO::fromDO)
+            .collect(Collectors.toList());
     }
 
     @Override
-    public ApiRecordConfig getActiveByIdentifierAndRegion(String identifier, String region) {
-        String[] parts = identifier.split(":");
-        if (parts.length != 4) {
-            throw new IllegalArgumentException("Invalid API identifier format");
-        }
+    public ApiRecordConfigBO getActiveByIdentifierAndRegion(String identifier, String region) {
         String stage = regionProvider.getStageByRegion(region);
-        return apiRecordConfigMapper.findActiveConfigByIdentifierAndStage(
-            identifier, stage
-        );
-    }
-
-    /**
-     * 构建配置标识
-     */
-    private String buildIdentifier(ApiRecordConfig config) {
-        return String.format("%s:%s:%s:%s",
-            config.getGatewayType(),
-            config.getGatewayCode(),
-            config.getApiVersion(),
-            config.getApiName()
-        );
+        ApiRecordConfig config = apiRecordConfigMapper.findActiveConfigByIdentifierAndStage(identifier, stage);
+        return config != null ? ApiRecordConfigBO.fromDO(config) : null;
     }
 
     /**
      * 获取配置变更信息
      */
-    public ConfigDiffResponse<ApiRecordConfig> getConfigDiff(ConfigDiffRequest request) {
+    public ConfigDiffResponse<ApiRecordConfigBO> getConfigDiff(ConfigDiffRequest request) {
         String stage = regionProvider.getStageByRegion(request.getRegion());
         
         // 获取当前所有生效的配置
@@ -166,8 +165,10 @@ public class ApiRecordConfigService implements BaseConfigService<ApiRecordConfig
             .collect(Collectors.toList());
         
         // 构建响应
-        return ConfigDiffResponse.<ApiRecordConfig>builder()
-            .updatedConfigs(updatedConfigs)
+        return ConfigDiffResponse.<ApiRecordConfigBO>builder()
+            .updatedConfigs(updatedConfigs.stream()
+                .map(ApiRecordConfigBO::fromDO)
+                .collect(Collectors.toList()))
             .deprecatedVersionIds(deprecatedVersionIds)
             .build();
     }

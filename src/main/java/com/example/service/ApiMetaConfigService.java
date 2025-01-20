@@ -79,14 +79,6 @@ public class ApiMetaConfigService implements BaseConfigService<ApiMetaConfig> {
         return apiMetaConfigMapper.findByVersionId(versionId);
     }
 
-    @Override
-    @Transactional
-    public void updateStatus(String versionId, String status, String stage) {
-        apiMetaConfigMapper.updateVersionStatus(versionId, status);
-        if (ConfigStatus.PUBLISHED.name().equals(status)) {
-            apiMetaConfigMapper.insertGrayRelease(versionId, stage);
-        }
-    }
 
     @Override
     public List<ApiMetaConfig> getActiveByRegion(String region) {

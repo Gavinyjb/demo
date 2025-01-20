@@ -6,7 +6,6 @@ import com.example.mapper.DataSourceConfigMapper;
 import com.example.enums.ConfigStatus;
 import com.example.util.RegionProvider;
 import com.example.util.VersionGenerator;
-import com.example.config.VersionProperties;
 import com.example.dto.ConfigDiffRequest;
 import com.example.dto.ConfigDiffResponse;
 import lombok.extern.slf4j.Slf4j;
@@ -33,9 +32,7 @@ public class DataSourceConfigService implements BaseConfigService<DataSourceConf
     
     @Autowired
     private RegionProvider regionProvider;
-    
-    @Autowired
-    private VersionProperties versionProperties;
+
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -104,17 +101,6 @@ public class DataSourceConfigService implements BaseConfigService<DataSourceConf
         return config != null ? DataSourceConfigBO.fromDO(config) : null;
     }
 
-    @Override
-    @Transactional
-    public void updateStatus(String versionId, String configStatus, String stage) {
-        // 更新版本状态
-        dataSourceConfigMapper.updateVersionStatus(versionId, configStatus);
-        
-        // 如果是发布状态且指定了灰度阶段，则插入灰度发布记录
-        if (ConfigStatus.PUBLISHED.name().equals(configStatus) && stage != null) {
-            dataSourceConfigMapper.insertGrayRelease(versionId, stage);
-        }
-    }
 
     @Override
     public List<DataSourceConfigBO> getActiveByRegion(String region) {
@@ -138,12 +124,6 @@ public class DataSourceConfigService implements BaseConfigService<DataSourceConf
         return config != null ? DataSourceConfigBO.fromDO(config) : null;
     }
 
-    /**
-     * 清理旧版本
-     */
-    private void cleanupOldVersions(String name) {
-        dataSourceConfigMapper.deleteByNameAndStatus(name, ConfigStatus.DRAFT.name());
-    }
 
     /**
      * 获取配置变更信息

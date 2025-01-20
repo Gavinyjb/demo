@@ -28,12 +28,7 @@ public interface BaseConfigService<T extends BaseVersionedConfig> {
      * 根据版本ID查询配置
      */
     T findByVersionId(String versionId);
-    
-    /**
-     * 更新配置状态和灰度阶段
-     */
-    void updateStatus(String versionId, String status, String stage);
-    
+
     /**
      * 获取指定地域生效的配置列表
      */
