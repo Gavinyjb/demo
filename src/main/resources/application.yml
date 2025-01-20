@@ -13,6 +13,8 @@ spring:
       schema-locations: classpath:db/schema.sql
       continue-on-error: true
       encoding: UTF-8
+  transaction:
+    rollback-on-commit-failure: true
 
 mybatis:
   mapper-locations: classpath:mapper/*.xml
@@ -33,3 +35,8 @@ config:
     max-api-meta-versions: 5
 diff:
   ignore-fields:
+
+logging:
+  level:
+    com.example.mapper: DEBUG
+    org.springframework.jdbc.core: TRACE

@@ -1,5 +1,5 @@
 -- 配置版本表
-CREATE TABLE config_version (
+CREATE TABLE IF NOT EXISTS config_version (
     version_id VARCHAR(256) PRIMARY KEY COMMENT '版本唯一标识',
     identifier VARCHAR(512) NOT NULL COMMENT '配置唯一标识',
     config_type VARCHAR(64) NOT NULL COMMENT '配置类型:DATA_SOURCE|API_RECORD|API_META',
@@ -10,17 +10,16 @@ CREATE TABLE config_version (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='配置版本表';
 
 -- 灰度发布表
-CREATE TABLE config_gray_release (
+CREATE TABLE IF NOT EXISTS config_gray_release (
     version_id VARCHAR(256) NOT NULL COMMENT '关联版本表',
     stage VARCHAR(64) NOT NULL COMMENT '灰度阶段:STAGE_1|STAGE_2|FULL',
     gmt_create DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     gmt_modified DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    PRIMARY KEY (version_id, stage),
-    CONSTRAINT fk_gray_version FOREIGN KEY (version_id) REFERENCES config_version (version_id)
+    PRIMARY KEY (version_id, stage)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='灰度发布表';
 
 -- 发布历史表
-CREATE TABLE publish_history (
+CREATE TABLE IF NOT EXISTS publish_history (
     version_id VARCHAR(256) NOT NULL COMMENT '关联版本表',
     config_type VARCHAR(64) NOT NULL COMMENT '配置类型:DATA_SOURCE|API_RECORD|API_META',
     status VARCHAR(64) NOT NULL COMMENT '状态:DRAFT|PUBLISHED|DEPRECATED',
@@ -28,16 +27,15 @@ CREATE TABLE publish_history (
     operator VARCHAR(256) NOT NULL COMMENT '操作人',
     gmt_create DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     gmt_modified DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    PRIMARY KEY (version_id, gmt_create),
-    CONSTRAINT fk_history_version FOREIGN KEY (version_id) REFERENCES config_version (version_id)
+    PRIMARY KEY (version_id, gmt_create)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='发布历史表';
 
 -- 数据源配置表
-CREATE TABLE data_source_config (
+CREATE TABLE IF NOT EXISTS data_source_config (
     version_id VARCHAR(256) PRIMARY KEY COMMENT '关联版本表',
     source VARCHAR(256) NOT NULL COMMENT '数据源标识',
     source_group VARCHAR(256) COMMENT '数据源分组',
-    gateway_type VARCHAR(256) COMMENT '网关类型',
+    gateway_type VARCHAR(64) COMMENT '网关类型',
     dm VARCHAR(64) COMMENT '数据|管控',
     sls_endpoint VARCHAR(256) COMMENT 'SLS访问地址',
     sls_project VARCHAR(256) COMMENT 'SLS项目',
@@ -48,12 +46,11 @@ CREATE TABLE data_source_config (
     consume_region VARCHAR(256) COMMENT '消费地域',
     worker_config VARCHAR(1024) COMMENT '工作配置JSON',
     gmt_create DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    gmt_modified DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    CONSTRAINT fk_ds_version FOREIGN KEY (version_id) REFERENCES config_version (version_id)
+    gmt_modified DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='数据源配置表';
 
 -- API元数据配置表
-CREATE TABLE amp_api_meta (
+CREATE TABLE IF NOT EXISTS amp_api_meta (
     version_id VARCHAR(256) PRIMARY KEY COMMENT '关联版本表',
     api_name VARCHAR(256) NOT NULL COMMENT 'API名称',
     product VARCHAR(256) COMMENT '产品名称',
@@ -73,12 +70,11 @@ CREATE TABLE amp_api_meta (
     effective_flag VARCHAR(64) COMMENT '生效标识',
     audit_status VARCHAR(64) COMMENT '审计状态',
     gmt_create DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    gmt_modified DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    CONSTRAINT fk_api_meta_version FOREIGN KEY (version_id) REFERENCES config_version (version_id)
+    gmt_modified DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='API元数据配置表';
 
 -- API记录配置表
-CREATE TABLE api_record_config (
+CREATE TABLE IF NOT EXISTS api_record_config (
     version_id VARCHAR(256) PRIMARY KEY COMMENT '关联版本表',
     gateway_type VARCHAR(64) NOT NULL COMMENT '网关类型',
     gateway_code VARCHAR(64) NOT NULL COMMENT '网关编码',
@@ -92,6 +88,5 @@ CREATE TABLE api_record_config (
     filter_config VARCHAR(15000) COMMENT '过滤配置JSON',
     reference_resource_config VARCHAR(15000) COMMENT '引用资源配置JSON',
     gmt_create DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    gmt_modified DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    CONSTRAINT fk_api_record_version FOREIGN KEY (version_id) REFERENCES config_version (version_id)
+    gmt_modified DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='API记录配置表'; 

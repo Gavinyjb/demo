@@ -6,27 +6,29 @@ import java.util.List;
 
 @Mapper
 public interface DataSourceConfigMapper {
-    @Insert("INSERT INTO data_source_config (" +
-            "version_id, source, source_group, gateway_type, dm, " +
-            "sls_endpoint, sls_project, sls_logstore, sls_account_id, " +
-            "sls_assume_role_arn, sls_cursor, consume_region, worker_config, " +
-            "gmt_create, gmt_modified" +
-            ") VALUES (" +
-            "#{versionId}, #{source}, #{sourceGroup}, #{gatewayType}, #{dm}, " +
-            "#{slsEndpoint}, #{slsProject}, #{slsLogstore}, #{slsAccountId}, " +
-            "#{slsAssumeRoleArn}, #{slsCursor}, #{consumeRegion}, #{workerConfig}, " +
-            "NOW(), NOW()" +
-            ")")
-    void insertDataSource(DataSourceConfig config);
-
     @Insert("INSERT INTO config_version (" +
             "version_id, identifier, config_type, status, " +
             "gmt_create, gmt_modified" +
             ") VALUES (" +
-            "#{versionId}, #{identifier}, 'DATA_SOURCE', #{status}, " +
+            "#{versionId}, #{source}, 'DATA_SOURCE', #{status}, " +
             "NOW(), NOW()" +
             ")")
     void insertVersion(DataSourceConfig config);
+
+    @Insert("INSERT INTO data_source_config (" +
+            "version_id, source, source_group, gateway_type, dm, " +
+            "sls_endpoint, sls_project, sls_logstore, " +
+            "sls_account_id, sls_assume_role_arn, sls_cursor, " +
+            "consume_region, worker_config, " +
+            "gmt_create, gmt_modified" +
+            ") VALUES (" +
+            "#{versionId}, #{source}, #{sourceGroup}, #{gatewayType}, #{dm}, " +
+            "#{slsEndpoint}, #{slsProject}, #{slsLogstore}, " +
+            "#{slsAccountId}, #{slsAssumeRoleArn}, #{slsCursor}, " +
+            "#{consumeRegion}, #{workerConfig}, " +
+            "NOW(), NOW()" +
+            ")")
+    void insertDataSource(DataSourceConfig config);
 
     @Select("SELECT d.*, v.status " +
             "FROM data_source_config d " +

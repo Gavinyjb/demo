@@ -8,11 +8,29 @@ import java.time.LocalDateTime;
  * 包含版本控制和灰度发布所需的公共字段
  */
 @Data
-public abstract class BaseVersionedConfig implements ConfigIdentifier {
-    private Long id;
-    private String versionId;
-    private String status;  // DRAFT|PUBLISHED|DEPRECATED
-    private String effectiveGrayGroups;  // STAGE_1|STAGE_2|FULL
-    private LocalDateTime gmtCreate;
-    private LocalDateTime gmtModified;
+public abstract class BaseVersionedConfig {
+    /**
+     * 版本ID
+     */
+    protected String versionId;
+    
+    /**
+     * 配置状态
+     */
+    protected String status;  // DRAFT|PUBLISHED|DEPRECATED
+    
+    /**
+     * 创建时间
+     */
+    protected LocalDateTime gmtCreate;
+    
+    /**
+     * 修改时间
+     */
+    protected LocalDateTime gmtModified;
+
+    /**
+     * 获取配置标识
+     */
+    public abstract String getIdentifier();
 } 

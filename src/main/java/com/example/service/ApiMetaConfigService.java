@@ -7,7 +7,6 @@ import com.example.mapper.ApiMetaConfigMapper;
 import com.example.enums.ConfigStatus;
 import com.example.util.RegionProvider;
 import com.example.util.VersionGenerator;
-import com.example.util.ConfigIdentifierUtils;
 import com.example.config.VersionProperties;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -120,7 +119,8 @@ public class ApiMetaConfigService implements BaseConfigService<ApiMetaConfig> {
 
     private boolean hasSameApiMetaConfig(ApiMetaConfig config) {
         List<ApiMetaConfig> existingConfigs = getAllPublished();
-        return ConfigIdentifierUtils.hasSameIdentifier(existingConfigs, config);
+        return existingConfigs.stream()
+            .anyMatch(existing -> existing.getIdentifier().equals(config.getIdentifier()));
     }
 
     private void cleanupOldVersions(ApiMetaConfig config) {

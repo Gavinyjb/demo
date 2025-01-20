@@ -8,6 +8,7 @@ import com.example.util.VersionGenerator;
 import com.example.config.VersionProperties;
 import com.example.dto.ConfigDiffRequest;
 import com.example.dto.ConfigDiffResponse;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,6 +20,7 @@ import java.util.stream.Collectors;
 /**
  * 数据源配置服务
  */
+@Slf4j
 @Service
 public class DataSourceConfigService implements BaseConfigService<DataSourceConfig> {
     
@@ -35,26 +37,42 @@ public class DataSourceConfigService implements BaseConfigService<DataSourceConf
     private VersionProperties versionProperties;
 
     @Override
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public DataSourceConfig create(DataSourceConfig config) {
-        // 检查是否已存在相同标识的配置
-        List<DataSourceConfig> existingConfigs = dataSourceConfigMapper.findPublishedConfigsBySource(config.getSource());
-        if (!existingConfigs.isEmpty()) {
-            throw new RuntimeException("Already exists config with source: " + config.getSource());
+        try {
+            // 检查是否已存在相同标识的配置
+            List<DataSourceConfig> existingConfigs = dataSourceConfigMapper.findPublishedConfigsBySource(config.getSource());
+            if (!existingConfigs.isEmpty()) {
+                throw new RuntimeException("Already exists config with source: " + config.getSource());
+            }
+            
+            // 设置版本信息
+            config.setVersionId(versionGenerator.generateDataSourceVersion());
+            config.setStatus(ConfigStatus.DRAFT.name());
+
+            log.info("Inserting version record: {}", config);
+            // 先插入版本信息
+            try {
+                dataSourceConfigMapper.insertVersion(config);
+            } catch (Exception e) {
+                log.error("Failed to insert version record", e);
+                throw e;
+            }
+            
+            log.info("Inserting data source record: {}", config);
+            // 再插入配置信息
+            try {
+                dataSourceConfigMapper.insertDataSource(config);
+            } catch (Exception e) {
+                log.error("Failed to insert data source record", e);
+                throw e;
+            }
+            
+            return config;
+        } catch (Exception e) {
+            log.error("Failed to create data source config: {}", config, e);
+            throw new RuntimeException("Failed to create data source config", e);
         }
-        
-        // 设置版本信息
-        config.setVersionId(versionGenerator.generateDataSourceVersion());
-        config.setStatus(ConfigStatus.DRAFT.name());
-        
-        // 插入配置和版本信息
-        dataSourceConfigMapper.insertDataSource(config);
-        dataSourceConfigMapper.insertVersion(config);
-        
-        // 清理旧的草稿版本
-        cleanupOldVersions(config.getSource());
-        
-        return config;
     }
 
     @Override
@@ -69,14 +87,21 @@ public class DataSourceConfigService implements BaseConfigService<DataSourceConf
         newConfig.setVersionId(versionGenerator.generateDataSourceVersion());
         newConfig.setStatus(ConfigStatus.DRAFT.name());
         
-        // 插入配置和版本信息
-        dataSourceConfigMapper.insertDataSource(newConfig);
-        dataSourceConfigMapper.insertVersion(newConfig);
-        
-        // 清理旧的草稿版本
-        cleanupOldVersions(newConfig.getSource());
-        
-        return newConfig;
+        try {
+            // 先插入版本信息
+            dataSourceConfigMapper.insertVersion(newConfig);
+            
+            // 再插入配置信息
+            dataSourceConfigMapper.insertDataSource(newConfig);
+            
+            // 清理旧的草稿版本
+            cleanupOldVersions(newConfig.getSource());
+            
+            return newConfig;
+        } catch (Exception e) {
+            log.error("Failed to update data source config", e);
+            throw new RuntimeException("Failed to update data source config", e);
+        }
     }
 
     @Override
