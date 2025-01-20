@@ -74,7 +74,15 @@ public interface DataSourceConfigMapper {
             "INNER JOIN config_version v ON d.version_id = v.version_id " +
             "LEFT JOIN config_gray_release g ON v.version_id = g.version_id " +
             "WHERE v.config_status IN ('PUBLISHED', 'GRAYING') " +
-            "AND (g.stage = #{stage} OR g.stage = 'FULL')")
+            "AND g.stage IN (" +
+            "  SELECT DISTINCT stage FROM (" +
+            "    SELECT 'FULL' as stage " +
+            "    UNION " +
+            "    SELECT 'STAGE_1' WHERE #{stage} = 'STAGE_1' " +
+            "    UNION " +
+            "    SELECT 'STAGE_2' WHERE #{stage} IN ('STAGE_1', 'STAGE_2')" +
+            "  ) stages" +
+            ")")
     List<DataSourceConfig> findByStage(@Param("stage") String stage);
 
     @Delete("DELETE FROM conf_data_source_config WHERE version_id = #{versionId}")
