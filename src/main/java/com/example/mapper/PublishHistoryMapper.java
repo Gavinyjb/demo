@@ -7,10 +7,10 @@ import java.util.List;
 @Mapper
 public interface PublishHistoryMapper {
     @Insert("INSERT INTO publish_history (" +
-            "version_id, config_type, status, stage, operator, " +
+            "version_id, config_type, config_status, stage, operator, " +
             "gmt_create, gmt_modified" +
             ") VALUES (" +
-            "#{versionId}, #{configType}, #{status}, #{stage}, #{operator}, " +
+            "#{versionId}, #{configType}, #{configStatus}, #{stage}, #{operator}, " +
             "NOW(), NOW()" +
             ")")
     void insert(PublishHistory history);
@@ -30,27 +30,27 @@ public interface PublishHistoryMapper {
     );
 
     @Insert("INSERT INTO publish_history (" +
-            "version_id, config_type, status, stage, operator, " +
+            "version_id, config_type, config_status, stage, operator, " +
             "gmt_create, gmt_modified" +
             ") VALUES (" +
-            "#{versionId}, #{configType}, #{status}, #{stage}, #{operator}, " +
+            "#{versionId}, #{configType}, #{configStatus}, #{stage}, #{operator}, " +
             "NOW(), NOW()" +
             ")")
     void insertMigrationHistory(
         @Param("versionId") String versionId,
         @Param("configType") String configType,
-        @Param("status") String status,
+        @Param("configStatus") String configStatus,
         @Param("stage") String stage,
         @Param("operator") String operator
     );
 
     @Select("SELECT * FROM publish_history " +
             "WHERE config_type = #{configType} " +
-            "AND status = #{status} " +
+            "AND config_status = #{configStatus} " +
             "ORDER BY gmt_create DESC")
     List<PublishHistory> findByConfigTypeAndStatus(
         @Param("configType") String configType,
-        @Param("status") String status
+        @Param("configStatus") String configStatus
     );
 
     @Select("SELECT * FROM publish_history " +

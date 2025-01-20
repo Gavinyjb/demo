@@ -17,7 +17,7 @@ public abstract class BaseVersionedConfig {
     /**
      * 配置状态
      */
-    protected String status;  // DRAFT|PUBLISHED|DEPRECATED
+    protected String configStatus;  // DRAFT|PUBLISHED|DEPRECATED
     
     /**
      * 创建时间

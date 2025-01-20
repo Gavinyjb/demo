@@ -1,6 +1,7 @@
 package com.example.service;
 
 import com.example.model.DataSourceConfig;
+import com.example.model.bo.DataSourceConfigBO;
 import com.example.mapper.DataSourceConfigMapper;
 import com.example.enums.ConfigStatus;
 import com.example.util.RegionProvider;
@@ -22,7 +23,7 @@ import java.util.stream.Collectors;
  */
 @Slf4j
 @Service
-public class DataSourceConfigService implements BaseConfigService<DataSourceConfig> {
+public class DataSourceConfigService implements BaseConfigService<DataSourceConfigBO> {
     
     @Autowired
     private DataSourceConfigMapper dataSourceConfigMapper;
@@ -38,17 +39,19 @@ public class DataSourceConfigService implements BaseConfigService<DataSourceConf
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public DataSourceConfig create(DataSourceConfig config) {
+    public DataSourceConfigBO create(DataSourceConfigBO configBO) {
+        DataSourceConfig config = configBO.toDO();
         try {
             // 检查是否已存在相同标识的配置
-            List<DataSourceConfig> existingConfigs = dataSourceConfigMapper.findPublishedConfigsBySource(config.getSource());
+            List<DataSourceConfig> existingConfigs = dataSourceConfigMapper.findPublishedConfigsByName(config.getName());
             if (!existingConfigs.isEmpty()) {
-                throw new RuntimeException("Already exists config with source: " + config.getSource());
+                throw new RuntimeException("Already exists config with name: " + config.getName());
             }
             
             // 设置版本信息
             config.setVersionId(versionGenerator.generateDataSourceVersion());
-            config.setStatus(ConfigStatus.DRAFT.name());
+            config.setConfigStatus(ConfigStatus.DRAFT.name());
+            config.setStatus(0); // 数据源状态：未上线
 
             log.info("Inserting version record: {}", config);
             // 先插入版本信息
@@ -68,7 +71,7 @@ public class DataSourceConfigService implements BaseConfigService<DataSourceConf
                 throw e;
             }
             
-            return config;
+            return DataSourceConfigBO.fromDO(config);
         } catch (Exception e) {
             log.error("Failed to create data source config: {}", config, e);
             throw new RuntimeException("Failed to create data source config", e);
@@ -77,27 +80,28 @@ public class DataSourceConfigService implements BaseConfigService<DataSourceConf
 
     @Override
     @Transactional
-    public DataSourceConfig update(String oldVersionId, DataSourceConfig newConfig) {
+    public DataSourceConfigBO update(String oldVersionId, DataSourceConfigBO newConfigBO) {
         DataSourceConfig oldConfig = findByVersionId(oldVersionId);
         if (oldConfig == null) {
             throw new RuntimeException("原配置版本不存在");
         }
         
         // 设置版本信息
-        newConfig.setVersionId(versionGenerator.generateDataSourceVersion());
-        newConfig.setStatus(ConfigStatus.DRAFT.name());
+        newConfigBO.setVersionId(versionGenerator.generateDataSourceVersion());
+        // 保持原有数据源状态
+        newConfigBO.setStatus(oldConfig.getStatus());
         
         try {
             // 先插入版本信息
-            dataSourceConfigMapper.insertVersion(newConfig);
+            dataSourceConfigMapper.insertVersion(newConfigBO.toDO());
             
             // 再插入配置信息
-            dataSourceConfigMapper.insertDataSource(newConfig);
+            dataSourceConfigMapper.insertDataSource(newConfigBO.toDO());
             
             // 清理旧的草稿版本
-            cleanupOldVersions(newConfig.getSource());
+            cleanupOldVersions(newConfigBO.getName());
             
-            return newConfig;
+            return newConfigBO;
         } catch (Exception e) {
             log.error("Failed to update data source config", e);
             throw new RuntimeException("Failed to update data source config", e);
@@ -105,55 +109,63 @@ public class DataSourceConfigService implements BaseConfigService<DataSourceConf
     }
 
     @Override
-    public List<DataSourceConfig> getAllPublished() {
-        return dataSourceConfigMapper.findAllPublished();
+    public List<DataSourceConfigBO> getAllPublished() {
+        return dataSourceConfigMapper.findAllPublished().stream()
+            .map(DataSourceConfigBO::fromDO)
+            .collect(Collectors.toList());
     }
 
     @Override
-    public DataSourceConfig findByVersionId(String versionId) {
-        return dataSourceConfigMapper.findByVersionId(versionId);
+    public DataSourceConfigBO findByVersionId(String versionId) {
+        DataSourceConfig config = dataSourceConfigMapper.findByVersionId(versionId);
+        return config != null ? DataSourceConfigBO.fromDO(config) : null;
     }
 
     @Override
     @Transactional
-    public void updateStatus(String versionId, String status, String stage) {
+    public void updateStatus(String versionId, String configStatus, String stage) {
         // 更新版本状态
-        dataSourceConfigMapper.updateVersionStatus(versionId, status);
+        dataSourceConfigMapper.updateVersionStatus(versionId, configStatus);
         
         // 如果是发布状态且指定了灰度阶段，则插入灰度发布记录
-        if (ConfigStatus.PUBLISHED.name().equals(status) && stage != null) {
+        if (ConfigStatus.PUBLISHED.name().equals(configStatus) && stage != null) {
             dataSourceConfigMapper.insertGrayRelease(versionId, stage);
         }
     }
 
     @Override
-    public List<DataSourceConfig> getActiveByRegion(String region) {
+    public List<DataSourceConfigBO> getActiveByRegion(String region) {
         String stage = regionProvider.getStageByRegion(region);
-        return dataSourceConfigMapper.findByStage(stage);
+        return dataSourceConfigMapper.findByStage(stage).stream()
+            .map(DataSourceConfigBO::fromDO)
+            .collect(Collectors.toList());
     }
 
     @Override
-    public List<DataSourceConfig> getPublishedByIdentifier(String identifier) {
-        return dataSourceConfigMapper.findPublishedConfigsBySource(identifier);
+    public List<DataSourceConfigBO> getPublishedByIdentifier(String identifier) {
+        return dataSourceConfigMapper.findPublishedConfigsByName(identifier).stream()
+            .map(DataSourceConfigBO::fromDO)
+            .collect(Collectors.toList());
     }
 
     @Override
-    public DataSourceConfig getActiveByIdentifierAndRegion(String identifier, String region) {
+    public DataSourceConfigBO getActiveByIdentifierAndRegion(String identifier, String region) {
         String stage = regionProvider.getStageByRegion(region);
-        return dataSourceConfigMapper.findActiveConfigBySourceAndStage(identifier, stage);
+        DataSourceConfig config = dataSourceConfigMapper.findActiveConfigByNameAndStage(identifier, stage);
+        return config != null ? DataSourceConfigBO.fromDO(config) : null;
     }
 
     /**
      * 清理旧版本
      */
-    private void cleanupOldVersions(String source) {
-        dataSourceConfigMapper.deleteBySourceAndStatus(source, ConfigStatus.DRAFT.name());
+    private void cleanupOldVersions(String name) {
+        dataSourceConfigMapper.deleteByNameAndStatus(name, ConfigStatus.DRAFT.name());
     }
 
     /**
      * 获取配置变更信息
      */
-    public ConfigDiffResponse<DataSourceConfig> getConfigDiff(ConfigDiffRequest request) {
+    public ConfigDiffResponse<DataSourceConfigBO> getConfigDiff(ConfigDiffRequest request) {
         String stage = regionProvider.getStageByRegion(request.getRegion());
         
         // 获取当前所有生效的配置
@@ -172,8 +184,10 @@ public class DataSourceConfigService implements BaseConfigService<DataSourceConf
             .collect(Collectors.toList());
         
         // 构建响应
-        return ConfigDiffResponse.<DataSourceConfig>builder()
-            .updatedConfigs(updatedConfigs)
+        return ConfigDiffResponse.<DataSourceConfigBO>builder()
+            .updatedConfigs(updatedConfigs.stream()
+                .map(DataSourceConfigBO::fromDO)
+                .collect(Collectors.toList()))
             .deprecatedVersionIds(deprecatedVersionIds)
             .build();
     }

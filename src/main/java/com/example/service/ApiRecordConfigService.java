@@ -53,7 +53,7 @@ public class ApiRecordConfigService implements BaseConfigService<ApiRecordConfig
         
         // 设置版本信息
         config.setVersionId(versionGenerator.generateApiRecordVersion());
-        config.setStatus(ConfigStatus.DRAFT.name());
+        config.setConfigStatus(ConfigStatus.DRAFT.name());
         
         // 插入配置和版本信息
         apiRecordConfigMapper.insertApiRecord(config);
@@ -72,7 +72,7 @@ public class ApiRecordConfigService implements BaseConfigService<ApiRecordConfig
         
         // 设置版本信息
         newConfig.setVersionId(versionGenerator.generateApiRecordVersion());
-        newConfig.setStatus(ConfigStatus.DRAFT.name());
+        newConfig.setConfigStatus(ConfigStatus.DRAFT.name());
         
         // 插入配置和版本信息
         apiRecordConfigMapper.insertApiRecord(newConfig);
@@ -128,7 +128,7 @@ public class ApiRecordConfigService implements BaseConfigService<ApiRecordConfig
         }
         String stage = regionProvider.getStageByRegion(region);
         return apiRecordConfigMapper.findActiveConfigByIdentifierAndStage(
-            parts[0], parts[1], parts[2], parts[3], stage
+            identifier, stage
         );
     }
 

@@ -7,9 +7,14 @@ import lombok.EqualsAndHashCode;
 @EqualsAndHashCode(callSuper = true)
 public class DataSourceConfig extends BaseVersionedConfig {
     /**
-     * 数据源标识
+     * 主键ID
      */
-    private String source;
+    private Long id;
+    
+    /**
+     * 数据源名称
+     */
+    private String name;
     
     /**
      * 数据源分组
@@ -27,29 +32,34 @@ public class DataSourceConfig extends BaseVersionedConfig {
     private String dm;
     
     /**
-     * SLS访问地址
+     * SLS RegionId
+     */
+    private String slsRegionId;
+    
+    /**
+     * SLS Endpoint
      */
     private String slsEndpoint;
     
     /**
-     * SLS项目
+     * SLS Project
      */
     private String slsProject;
     
     /**
-     * SLS日志库
+     * SLS LogStore
      */
-    private String slsLogstore;
+    private String slsLogStore;
     
     /**
-     * SLS账号ID
+     * SLS 所属账号
      */
     private String slsAccountId;
     
     /**
-     * SLS角色ARN
+     * 拉取日志的 SLS 角色
      */
-    private String slsAssumeRoleArn;
+    private String slsRoleArn;
     
     /**
      * SLS游标
@@ -62,13 +72,28 @@ public class DataSourceConfig extends BaseVersionedConfig {
     private String consumeRegion;
     
     /**
-     * 工作配置JSON
+     * 消费组名称
      */
-    private String workerConfig; // JSON格式: {fetchIntervalMillis, maxFetchLogGroupSize|actiontrail_work_id}
+    private String consumerGroupName;
+    
+    /**
+     * 状态
+     */
+    private Integer status;
+    
+    /**
+     * 消费配置
+     */
+    private String workerConfig;
+    
+    /**
+     * 备注
+     */
+    private String comment;
 
     @Override
     public String getIdentifier() {
-        return this.source;
+        return this.name;
     }
 
     public boolean isSameSource(DataSourceConfig other) {

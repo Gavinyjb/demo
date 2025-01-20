@@ -7,100 +7,105 @@ import java.util.List;
 @Mapper
 public interface DataSourceConfigMapper {
     @Insert("INSERT INTO config_version (" +
-            "version_id, identifier, config_type, status, " +
+            "version_id, identifier, config_type, config_status, " +
             "gmt_create, gmt_modified" +
             ") VALUES (" +
-            "#{versionId}, #{source}, 'DATA_SOURCE', #{status}, " +
+            "#{versionId}, #{name}, 'DATA_SOURCE', #{configStatus}, " +
             "NOW(), NOW()" +
             ")")
     void insertVersion(DataSourceConfig config);
 
-    @Insert("INSERT INTO data_source_config (" +
-            "version_id, source, source_group, gateway_type, dm, " +
-            "sls_endpoint, sls_project, sls_logstore, " +
-            "sls_account_id, sls_assume_role_arn, sls_cursor, " +
-            "consume_region, worker_config, " +
+    @Insert("INSERT INTO conf_data_source_config (" +
+            "version_id, name, source_group, gateway_type, dm, " +
+            "sls_region_id, sls_endpoint, sls_project, sls_log_store, " +
+            "sls_account_id, sls_role_arn, sls_cursor, " +
+            "consume_region, consumer_group_name, status, worker_config, comment, " +
             "gmt_create, gmt_modified" +
             ") VALUES (" +
-            "#{versionId}, #{source}, #{sourceGroup}, #{gatewayType}, #{dm}, " +
-            "#{slsEndpoint}, #{slsProject}, #{slsLogstore}, " +
-            "#{slsAccountId}, #{slsAssumeRoleArn}, #{slsCursor}, " +
-            "#{consumeRegion}, #{workerConfig}, " +
+            "#{versionId}, #{name}, #{sourceGroup}, #{gatewayType}, #{dm}, " +
+            "#{slsRegionId}, #{slsEndpoint}, #{slsProject}, #{slsLogStore}, " +
+            "#{slsAccountId}, #{slsRoleArn}, #{slsCursor}, " +
+            "#{consumeRegion}, #{consumerGroupName}, #{status}, #{workerConfig}, #{comment}, " +
             "NOW(), NOW()" +
             ")")
     void insertDataSource(DataSourceConfig config);
 
-    @Select("SELECT d.*, v.status " +
-            "FROM data_source_config d " +
+    @Select("SELECT d.*, v.config_status " +
+            "FROM conf_data_source_config d " +
             "INNER JOIN config_version v ON d.version_id = v.version_id " +
             "WHERE d.version_id = #{versionId}")
     DataSourceConfig findByVersionId(String versionId);
 
-    @Select("SELECT d.*, v.status " +
-            "FROM data_source_config d " +
+    @Select("SELECT d.*, v.config_status " +
+            "FROM conf_data_source_config d " +
             "INNER JOIN config_version v ON d.version_id = v.version_id " +
-            "WHERE v.status = 'PUBLISHED'")
+            "WHERE v.config_status = 'PUBLISHED'")
     List<DataSourceConfig> findAllPublished();
 
-    @Select("SELECT d.*, v.status " +
-            "FROM data_source_config d " +
+    @Select("SELECT d.*, v.config_status " +
+            "FROM conf_data_source_config d " +
             "INNER JOIN config_version v ON d.version_id = v.version_id " +
-            "LEFT JOIN config_gray_release g ON v.version_id = g.version_id " +
-            "WHERE d.source = #{source} " +
-            "AND v.status = 'PUBLISHED' " +
-            "AND (g.stage = #{stage} OR g.stage = 'FULL') " +
-            "ORDER BY g.stage = 'FULL' DESC, " +
-            "v.gmt_modified DESC " +
-            "LIMIT 1")
-    DataSourceConfig findActiveConfigBySourceAndStage(
-        @Param("source") String source,
-        @Param("stage") String stage
-    );
+            "WHERE v.config_status = 'PUBLISHED'")
+    List<DataSourceConfig> findAllPublishedConfigs();
 
-    @Select("SELECT d.*, v.status " +
-            "FROM data_source_config d " +
+    @Select("SELECT d.*, v.config_status " +
+            "FROM conf_data_source_config d " +
             "INNER JOIN config_version v ON d.version_id = v.version_id " +
-            "WHERE d.source = #{source} " +
-            "AND v.status = 'PUBLISHED' " +
+            "WHERE d.name = #{name} " +
+            "AND v.config_status = 'PUBLISHED' " +
             "ORDER BY v.gmt_modified DESC")
-    List<DataSourceConfig> findPublishedConfigsBySource(String source);
+    List<DataSourceConfig> findPublishedConfigsByName(String name);
 
-    @Select("SELECT d.*, v.status " +
-            "FROM data_source_config d " +
+    @Select("SELECT d.*, v.config_status " +
+            "FROM conf_data_source_config d " +
             "INNER JOIN config_version v ON d.version_id = v.version_id " +
-            "WHERE d.source = #{source} " +
+            "WHERE d.name = #{name} " +
             "ORDER BY v.gmt_modified DESC")
-    List<DataSourceConfig> findAllVersionsBySource(String source);
+    List<DataSourceConfig> findAllVersionsByName(String name);
 
-    @Update("UPDATE config_version SET status = #{status} WHERE version_id = #{versionId}")
-    void updateVersionStatus(@Param("versionId") String versionId, @Param("status") String status);
+    @Update("UPDATE config_version SET config_status = #{configStatus} WHERE version_id = #{versionId}")
+    void updateVersionStatus(@Param("versionId") String versionId, @Param("configStatus") String configStatus);
 
     @Insert("INSERT INTO config_gray_release (version_id, stage) VALUES (#{versionId}, #{stage})")
     void insertGrayRelease(@Param("versionId") String versionId, @Param("stage") String stage);
 
-    @Select("SELECT d.*, v.status " +
-            "FROM data_source_config d " +
+    @Select("SELECT d.*, v.config_status " +
+            "FROM conf_data_source_config d " +
             "INNER JOIN config_version v ON d.version_id = v.version_id " +
             "LEFT JOIN config_gray_release g ON v.version_id = g.version_id " +
-            "WHERE v.status = 'PUBLISHED' " +
+            "WHERE v.config_status = 'PUBLISHED' " +
             "AND (g.stage = #{stage} OR g.stage = 'FULL')")
     List<DataSourceConfig> findByStage(@Param("stage") String stage);
 
     @Delete("DELETE d, v, g " +
-            "FROM data_source_config d " +
+            "FROM conf_data_source_config d " +
             "LEFT JOIN config_version v ON d.version_id = v.version_id " +
             "LEFT JOIN config_gray_release g ON v.version_id = g.version_id " +
             "WHERE d.version_id = #{versionId}")
     void deleteByVersionId(String versionId);
 
     @Delete("DELETE d, v, g " +
-            "FROM data_source_config d " +
+            "FROM conf_data_source_config d " +
             "LEFT JOIN config_version v ON d.version_id = v.version_id " +
             "LEFT JOIN config_gray_release g ON v.version_id = g.version_id " +
-            "WHERE d.source = #{source} " +
-            "AND v.status = #{status}")
-    void deleteBySourceAndStatus(
-        @Param("source") String source,
-        @Param("status") String status
+            "WHERE d.name = #{name} " +
+            "AND v.config_status = #{configStatus}")
+    void deleteByNameAndStatus(
+        @Param("name") String name,
+        @Param("configStatus") String configStatus
+    );
+
+    @Select("SELECT d.*, v.config_status " +
+            "FROM conf_data_source_config d " +
+            "INNER JOIN config_version v ON d.version_id = v.version_id " +
+            "LEFT JOIN config_gray_release g ON v.version_id = g.version_id " +
+            "WHERE d.name = #{name} " +
+            "AND v.config_status = 'PUBLISHED' " +
+            "AND (g.stage = #{stage} OR g.stage = 'FULL') " +
+            "ORDER BY g.stage = 'FULL' DESC, v.gmt_modified DESC " +
+            "LIMIT 1")
+    DataSourceConfig findActiveConfigByNameAndStage(
+        @Param("name") String name,
+        @Param("stage") String stage
     );
 } 

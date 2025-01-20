@@ -6,7 +6,7 @@ import lombok.Data;
 @Data
 public class PublishStageRequest {
     /**
-     * 配置版本号
+     * 版本ID
      */
     private String versionId;
     

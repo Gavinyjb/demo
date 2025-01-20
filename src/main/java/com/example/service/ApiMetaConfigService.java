@@ -42,7 +42,7 @@ public class ApiMetaConfigService implements BaseConfigService<ApiMetaConfig> {
         }
         
         config.setVersionId(versionGenerator.generateApiMetaVersion());
-        config.setStatus(ConfigStatus.DRAFT.name());
+        config.setConfigStatus(ConfigStatus.DRAFT.name());
         apiMetaConfigMapper.insertApiMeta(config);
         apiMetaConfigMapper.insertVersion(config);
         
@@ -60,7 +60,7 @@ public class ApiMetaConfigService implements BaseConfigService<ApiMetaConfig> {
         }
         
         newConfig.setVersionId(versionGenerator.generateApiMetaVersion());
-        newConfig.setStatus(ConfigStatus.DRAFT.name());
+        newConfig.setConfigStatus(ConfigStatus.DRAFT.name());
         apiMetaConfigMapper.insertApiMeta(newConfig);
         apiMetaConfigMapper.insertVersion(newConfig);
         

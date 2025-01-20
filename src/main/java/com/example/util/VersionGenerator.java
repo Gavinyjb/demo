@@ -15,7 +15,7 @@ public class VersionGenerator {
 
     /**
      * 生成数据源配置版本号
-     * 格式：DS + 年月日 + 4位序号，如：DS202401150001
+     * 格式：DS + 年月日 + 5位序号，如：DS2024011500001
      */
     public String generateDataSourceVersion() {
         return generateVersion("DS", dataSourceCounter);
@@ -23,7 +23,7 @@ public class VersionGenerator {
 
     /**
      * 生成API记录配置版本号
-     * 格式：AR + 年月日 + 4位序号，如：AR202401150001
+     * 格式：AR + 年月日 + 5位序号，如：AR2024011500001
      */
     public String generateApiRecordVersion() {
         return generateVersion("AR", apiRecordCounter);
@@ -31,7 +31,7 @@ public class VersionGenerator {
 
     /**
      * 生成API Meta配置版本号
-     * 格式：AM + 年月日 + 4位序号，如：AM202401150001
+     * 格式：AM + 年月日 + 5位序号，如：AM2024011500001
      */
     public String generateApiMetaVersion() {
         return generateVersion("AM", apiMetaCounter);
@@ -43,6 +43,6 @@ public class VersionGenerator {
             currentDate = today;
             counter.set(1);
         }
-        return String.format("%s%s%04d", prefix, today, counter.getAndIncrement());
+        return String.format("%s%s%05d", prefix, today, counter.getAndIncrement());
     }
 } 

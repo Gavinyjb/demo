@@ -14,7 +14,7 @@ import lombok.AllArgsConstructor;
 public class PublishHistory {
     private String versionId;
     private String configType;  // DATA_SOURCE|API_RECORD|API_META
-    private String status;      // DRAFT|PUBLISHED|DEPRECATED
+    private String configStatus;  // DRAFT|PUBLISHED|DEPRECATED
     private String stage;       // STAGE_1|STAGE_2|FULL
     private String operator;
     private LocalDateTime gmtCreate;

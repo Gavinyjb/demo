@@ -1,6 +1,7 @@
 package com.example.controller;
 
 import com.example.model.DataSourceConfig;
+import com.example.model.bo.DataSourceConfigBO;
 import com.example.service.DataSourceConfigService;
 import com.example.util.RegionProvider;
 import com.example.dto.ConfigDiffRequest;
@@ -16,7 +17,7 @@ import java.util.Map;
 import java.util.HashMap;
 
 @RestController
-@RequestMapping("/api/datasource")
+@RequestMapping("/api/datasource/configs")
 @Tag(name = "数据源配置", description = "数据源配置相关接口")
 public class DataSourceConfigController {
     
@@ -31,8 +32,8 @@ public class DataSourceConfigController {
      */
     @PostMapping
     @Operation(summary = "创建数据源配置")
-    public DataSourceConfig create(@RequestBody DataSourceConfig config) {
-        return dataSourceConfigService.create(config);
+    public ResponseEntity<DataSourceConfigBO> create(@RequestBody DataSourceConfigBO config) {
+        return ResponseEntity.ok(dataSourceConfigService.create(config));
     }
 
     /**
@@ -42,7 +43,7 @@ public class DataSourceConfigController {
     @Operation(summary = "更新数据源配置")
     public DataSourceConfig update(
         @PathVariable String versionId,
-        @RequestBody DataSourceConfig config
+        @RequestBody DataSourceConfigBO config
     ) {
         return dataSourceConfigService.update(versionId, config);
     }
@@ -51,15 +52,15 @@ public class DataSourceConfigController {
      * 获取指定版本的配置
      */
     @GetMapping("/{versionId}")
-    public DataSourceConfig getByVersionId(@PathVariable String versionId) {
-        return dataSourceConfigService.findByVersionId(versionId);
+    public ResponseEntity<DataSourceConfigBO> getByVersionId(@PathVariable String versionId) {
+        return ResponseEntity.ok(dataSourceConfigService.findByVersionId(versionId));
     }
 
     /**
      * 获取所有已发布的配置
      */
     @GetMapping("/published")
-    public List<DataSourceConfig> getAllPublished() {
+    public List<DataSourceConfigBO> getAllPublished() {
         return dataSourceConfigService.getAllPublished();
     }
 
@@ -67,7 +68,7 @@ public class DataSourceConfigController {
      * 获取指定数据源的所有已发布配置
      */
     @GetMapping("/published/{source}")
-    public List<DataSourceConfig> getPublishedBySource(@PathVariable String source) {
+    public List<DataSourceConfigBO> getPublishedBySource(@PathVariable String source) {
         return dataSourceConfigService.getPublishedByIdentifier(source);
     }
 
@@ -86,7 +87,7 @@ public class DataSourceConfigController {
      * 获取指定地域生效的所有配置
      */
     @GetMapping("/active")
-    public List<DataSourceConfig> getActiveByRegion(@RequestParam String region) {
+    public List<DataSourceConfigBO> getActiveByRegion(@RequestParam String region) {
         return dataSourceConfigService.getActiveByRegion(region);
     }
 
@@ -95,7 +96,7 @@ public class DataSourceConfigController {
      */
     @PostMapping("/diff")
     @Operation(summary = "获取配置变更信息")
-    public ConfigDiffResponse<DataSourceConfig> getConfigDiff(@RequestBody ConfigDiffRequest request) {
+    public ConfigDiffResponse<DataSourceConfigBO> getConfigDiff(@RequestBody ConfigDiffRequest request) {
         return dataSourceConfigService.getConfigDiff(request);
     }
 } 

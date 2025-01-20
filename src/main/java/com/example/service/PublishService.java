@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * 配置发布服务
@@ -29,19 +30,26 @@ public class PublishService {
     @Autowired
     private PublishHistoryMapper publishHistoryMapper;
 
+    @Autowired
+    private Map<String, BaseConfigService<?>> configServices;
+
     /**
      * 发布配置
      */
     @Transactional
     public void publishConfig(String versionId, String configType, String stage, String operator) {
-        // 根据配置类型选择对应的服务
-        BaseConfigService<?> configService = getConfigService(configType);
-        
-        // 更新配置状态和灰度信息
-        configService.updateStatus(versionId, ConfigStatus.PUBLISHED.name(), stage);
+        BaseConfigService<?> service = getConfigService(configType);
+        service.updateStatus(versionId, ConfigStatus.PUBLISHED.name(), stage);
         
         // 记录发布历史
-        recordHistory(versionId, configType, ConfigStatus.PUBLISHED.name(), stage, operator);
+        PublishHistory history = PublishHistory.builder()
+            .versionId(versionId)
+            .configType(configType)
+            .configStatus(ConfigStatus.PUBLISHED.name())
+            .stage(stage)
+            .operator(operator)
+            .build();
+        publishHistoryMapper.insert(history);
     }
 
     /**
@@ -49,14 +57,17 @@ public class PublishService {
      */
     @Transactional
     public void deprecateConfig(String versionId, String configType, String operator) {
-        // 根据配置类型选择对应的服务
-        BaseConfigService<?> configService = getConfigService(configType);
+        BaseConfigService<?> service = getConfigService(configType);
+        service.updateStatus(versionId, ConfigStatus.DEPRECATED.name(), null);
         
-        // 更新配置状态
-        configService.updateStatus(versionId, ConfigStatus.DEPRECATED.name(), null);
-        
-        // 记录发布历史
-        recordHistory(versionId, configType, ConfigStatus.DEPRECATED.name(), null, operator);
+        // 记录废弃历史
+        PublishHistory history = PublishHistory.builder()
+            .versionId(versionId)
+            .configType(configType)
+            .configStatus(ConfigStatus.DEPRECATED.name())
+            .operator(operator)
+            .build();
+        publishHistoryMapper.insert(history);
     }
 
     /**
@@ -157,17 +168,6 @@ public class PublishService {
      */
     public List<PublishHistory> getPublishHistory(String versionId) {
         return publishHistoryMapper.findByVersionId(versionId);
-    }
-
-    private void recordHistory(String versionId, String configType, String status, String stage, String operator) {
-        PublishHistory history = PublishHistory.builder()
-            .versionId(versionId)
-            .configType(configType)
-            .status(status)
-            .stage(stage)
-            .operator(operator)
-            .build();
-        publishHistoryMapper.insert(history);
     }
 
     private BaseConfigService<?> getConfigService(String configType) {

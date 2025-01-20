@@ -3,7 +3,7 @@ CREATE TABLE IF NOT EXISTS config_version (
     version_id VARCHAR(256) PRIMARY KEY COMMENT '版本唯一标识',
     identifier VARCHAR(512) NOT NULL COMMENT '配置唯一标识',
     config_type VARCHAR(64) NOT NULL COMMENT '配置类型:DATA_SOURCE|API_RECORD|API_META',
-    status VARCHAR(64) NOT NULL COMMENT '状态:DRAFT|PUBLISHED|DEPRECATED',
+    config_status VARCHAR(64) NOT NULL COMMENT '配置状态:DRAFT|PUBLISHED|DEPRECATED',
     gmt_create DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     gmt_modified DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     UNIQUE KEY uk_identifier_type (identifier, config_type)
@@ -22,7 +22,7 @@ CREATE TABLE IF NOT EXISTS config_gray_release (
 CREATE TABLE IF NOT EXISTS publish_history (
     version_id VARCHAR(256) NOT NULL COMMENT '关联版本表',
     config_type VARCHAR(64) NOT NULL COMMENT '配置类型:DATA_SOURCE|API_RECORD|API_META',
-    status VARCHAR(64) NOT NULL COMMENT '状态:DRAFT|PUBLISHED|DEPRECATED',
+    config_status VARCHAR(64) NOT NULL COMMENT '配置状态:DRAFT|PUBLISHED|DEPRECATED',
     stage VARCHAR(64) COMMENT '灰度阶段:STAGE_1|STAGE_2|FULL',
     operator VARCHAR(256) NOT NULL COMMENT '操作人',
     gmt_create DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -31,23 +31,30 @@ CREATE TABLE IF NOT EXISTS publish_history (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='发布历史表';
 
 -- 数据源配置表
-CREATE TABLE IF NOT EXISTS data_source_config (
-    version_id VARCHAR(256) PRIMARY KEY COMMENT '关联版本表',
-    source VARCHAR(256) NOT NULL COMMENT '数据源标识',
-    source_group VARCHAR(256) COMMENT '数据源分组',
-    gateway_type VARCHAR(64) COMMENT '网关类型',
-    dm VARCHAR(64) COMMENT '数据|管控',
-    sls_endpoint VARCHAR(256) COMMENT 'SLS访问地址',
-    sls_project VARCHAR(256) COMMENT 'SLS项目',
-    sls_logstore VARCHAR(256) COMMENT 'SLS日志库',
-    sls_account_id VARCHAR(256) COMMENT 'SLS账号ID',
-    sls_assume_role_arn VARCHAR(256) COMMENT 'SLS角色ARN',
-    sls_cursor VARCHAR(256) COMMENT 'SLS游标',
-    consume_region VARCHAR(256) COMMENT '消费地域',
-    worker_config VARCHAR(1024) COMMENT '工作配置JSON',
-    gmt_create DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    gmt_modified DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='数据源配置表';
+CREATE TABLE IF NOT EXISTS conf_data_source_config (
+    `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT COMMENT '主键',
+    `gmt_create` datetime NOT NULL COMMENT '创建时间', 
+    `gmt_modified` datetime NOT NULL COMMENT '修改时间',
+    `version_id` varchar(255) DEFAULT NULL COMMENT '版本ID',
+    `name` varchar(255) NOT NULL COMMENT '数据源名称',
+    `source_group` varchar(255) DEFAULT NULL COMMENT '数据源分组',
+    `gateway_type` varchar(255) DEFAULT NULL COMMENT '网关类型',
+    `dm` varchar(64) DEFAULT NULL COMMENT '数据|管控',
+    `sls_region_id` varchar(255) NOT NULL COMMENT 'SLS RegionId',
+    `sls_endpoint` varchar(255) DEFAULT NULL COMMENT 'SLS Endpoint',
+    `sls_project` varchar(255) NOT NULL COMMENT 'SLS Project',
+    `sls_log_store` varchar(255) NOT NULL COMMENT 'SLS LogStore',
+    `sls_account_id` varchar(255) NOT NULL COMMENT 'SLS 所属账号',
+    `sls_role_arn` varchar(255) NOT NULL COMMENT '拉取日志的 SLS 角色',
+    `sls_cursor` varchar(256) DEFAULT NULL COMMENT 'SLS游标',
+    `consume_region` varchar(255) DEFAULT NULL COMMENT '消费地域',
+    `consumer_group_name` varchar(255) NOT NULL COMMENT '消费组名称',
+    `status` tinyint(4) NOT NULL DEFAULT '0' COMMENT '状态',
+    `worker_config` varchar(1024) DEFAULT NULL COMMENT '消费配置',
+    `comment` varchar(255) DEFAULT NULL COMMENT '备注',
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_name` (`name`(128))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='操作审计数据源表';
 
 -- API元数据配置表
 CREATE TABLE IF NOT EXISTS amp_api_meta (

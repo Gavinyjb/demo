@@ -20,30 +20,32 @@ public interface ApiMetaConfigMapper {
     void insertApiMeta(ApiMetaConfig config);
 
     @Insert("INSERT INTO config_version (" +
-            "version_id, identifier, config_type, status, " +
-            "gmt_create, gmt_modified) " +
-            "VALUES (#{versionId}, #{identifier}, 'API_META', #{status}, " +
-            "NOW(), NOW())")
+            "version_id, identifier, config_type, config_status, " +
+            "gmt_create, gmt_modified" +
+            ") VALUES (" +
+            "#{versionId}, #{identifier}, 'API_META', #{configStatus}, " +
+            "NOW(), NOW()" +
+            ")")
     void insertVersion(ApiMetaConfig config);
 
-    @Select("SELECT m.*, v.status " +
+    @Select("SELECT m.*, v.config_status " +
             "FROM amp_api_meta m " +
             "INNER JOIN config_version v ON m.version_id = v.version_id " +
             "WHERE m.version_id = #{versionId}")
     ApiMetaConfig findByVersionId(String versionId);
 
-    @Select("SELECT m.*, v.status " +
+    @Select("SELECT m.*, v.config_status " +
             "FROM amp_api_meta m " +
             "INNER JOIN config_version v ON m.version_id = v.version_id " +
-            "WHERE v.status = 'PUBLISHED'")
+            "WHERE v.config_status = 'PUBLISHED'")
     List<ApiMetaConfig> findAllPublished();
 
-    @Select("SELECT m.*, v.status " +
+    @Select("SELECT m.*, v.config_status " +
             "FROM amp_api_meta m " +
             "INNER JOIN config_version v ON m.version_id = v.version_id " +
             "LEFT JOIN config_gray_release g ON v.version_id = g.version_id " +
             "WHERE v.identifier = #{identifier} " +
-            "AND v.status = 'PUBLISHED' " +
+            "AND v.config_status = 'PUBLISHED' " +
             "AND (g.stage = #{stage} OR g.stage = 'FULL') " +
             "ORDER BY g.stage = 'FULL' DESC, v.gmt_modified DESC " +
             "LIMIT 1")
@@ -52,16 +54,16 @@ public interface ApiMetaConfigMapper {
         @Param("stage") String stage
     );
 
-    @Select("SELECT m.*, v.status " +
+    @Select("SELECT m.*, v.config_status " +
             "FROM amp_api_meta m " +
             "INNER JOIN config_version v ON m.version_id = v.version_id " +
             "WHERE v.identifier = #{identifier} " +
-            "AND v.status = 'PUBLISHED' " +
+            "AND v.config_status = 'PUBLISHED' " +
             "ORDER BY v.gmt_modified DESC")
     List<ApiMetaConfig> findPublishedConfigsByIdentifier(@Param("identifier") String identifier);
 
-    @Update("UPDATE config_version SET status = #{status} WHERE version_id = #{versionId}")
-    void updateVersionStatus(@Param("versionId") String versionId, @Param("status") String status);
+    @Update("UPDATE config_version SET config_status = #{configStatus} WHERE version_id = #{versionId}")
+    void updateVersionStatus(@Param("versionId") String versionId, @Param("configStatus") String configStatus);
 
     @Insert("INSERT INTO config_gray_release (version_id, stage) VALUES (#{versionId}, #{stage})")
     void insertGrayRelease(@Param("versionId") String versionId, @Param("stage") String stage);
@@ -73,11 +75,11 @@ public interface ApiMetaConfigMapper {
             "WHERE m.version_id = #{versionId}")
     void deleteByVersionId(String versionId);
 
-    @Select("SELECT m.*, v.status " +
+    @Select("SELECT m.*, v.config_status " +
             "FROM amp_api_meta m " +
             "INNER JOIN config_version v ON m.version_id = v.version_id " +
             "LEFT JOIN config_gray_release g ON v.version_id = g.version_id " +
-            "WHERE v.status = 'PUBLISHED' " +
+            "WHERE v.config_status = 'PUBLISHED' " +
             "AND (g.stage = #{stage} OR g.stage = 'FULL')")
     List<ApiMetaConfig> findByStage(@Param("stage") String stage);
 } 
