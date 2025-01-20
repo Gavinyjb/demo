@@ -1,7 +1,6 @@
 package com.example.service;
 
 import com.example.enums.ConfigStatus;
-import com.example.enums.ConfigType;
 import com.example.enums.GrayStage;
 import com.example.mapper.ConfigVersionMapper;
 import com.example.mapper.ConfigGrayReleaseMapper;
@@ -44,24 +43,6 @@ public class PublishService {
     @Autowired
     private ConfigGrayReleaseMapper grayReleaseMapper;
 
-    /**
-     * 发布配置
-     */
-    @Transactional
-    public void publishConfig(String versionId, String configType, String stage, String operator) {
-        BaseConfigService<?> service = getConfigService(configType);
-        service.updateStatus(versionId, ConfigStatus.PUBLISHED.name(), stage);
-        
-        // 记录发布历史
-        PublishHistory history = PublishHistory.builder()
-            .versionId(versionId)
-            .configType(configType)
-            .configStatus(ConfigStatus.PUBLISHED.name())
-            .stage(stage)
-            .operator(operator)
-            .build();
-        publishHistoryMapper.insert(history);
-    }
 
     /**
      * 回滚配置
@@ -83,7 +64,7 @@ public class PublishService {
             .findFirst()
             .orElseThrow(() -> new RuntimeException("Target version not found"));
 
-        publishConfig(targetVersionId, targetHistory.getConfigType(), targetHistory.getStage(), operator);
+        publishByStage(targetVersionId, targetHistory.getConfigType(), GrayStage.FULL, operator);
     }
 
     /**
@@ -106,49 +87,23 @@ public class PublishService {
     /**
      * 回滚到指定版本
      */
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public void rollbackToVersion(String identifier, String targetVersionId, String configType, String operator) {
-        List<? extends BaseVersionedConfig> publishedConfigs = getPublishedConfigs(identifier, configType);
-        
-        if (publishedConfigs.isEmpty()) {
-            throw new RuntimeException("No active version for: " + identifier);
+        // 获取当前生效的版本
+        ConfigVersion currentVersion = configVersionMapper.findActiveVersionByIdentifier(identifier, configType);
+        if (currentVersion != null) {
+            // 废弃当前版本
+            deprecateConfig(currentVersion.getVersionId(), configType, operator);
         }
-        
-        rollback(publishedConfigs.get(0).getVersionId(), targetVersionId, operator);
-    }
 
-    private String getConfigTypeFromVersionId(String versionId) {
-        if (versionId == null || versionId.length() < 2) {
-            throw new IllegalArgumentException("Invalid version ID: " + versionId);
+        // 重新发布目标版本
+        ConfigVersion targetVersion = configVersionMapper.findByVersionId(targetVersionId);
+        if (targetVersion == null) {
+            throw new RuntimeException("Target version not found: " + targetVersionId);
         }
-        
-        String prefix = versionId.substring(0, 2);
-        switch (prefix) {
-            case "DS":
-                return ConfigType.DATA_SOURCE.name();
-            case "AR":
-                return ConfigType.API_RECORD.name();
-            case "AM":
-                return ConfigType.API_META.name();
-            default:
-                throw new IllegalArgumentException("Unknown version ID prefix: " + prefix);
-        }
-    }
 
-    private void updateConfigStatus(String versionId, String status, String grayGroups, String configType) {
-        switch (ConfigType.valueOf(configType)) {
-            case DATA_SOURCE:
-                dataSourceConfigService.updateStatus(versionId, status, grayGroups);
-                break;
-            case API_RECORD:
-                apiRecordConfigService.updateStatus(versionId, status, grayGroups);
-                break;
-            case API_META:
-                apiMetaConfigService.updateStatus(versionId, status, grayGroups);
-                break;
-            default:
-                throw new IllegalArgumentException("Unsupported config type: " + configType);
-        }
+        // 使用 publishByStage 重新发布
+        publishByStage(targetVersionId, configType, GrayStage.FULL, operator);
     }
 
     private List<? extends BaseVersionedConfig> getPublishedConfigs(String identifier, String configType) {
@@ -194,8 +149,11 @@ public class PublishService {
             throw new RuntimeException("Cannot publish deprecated version: " + versionId);
         }
 
-        // 3. 更新配置状态为已发布
-        configVersionMapper.updateStatus(versionId, ConfigStatus.PUBLISHED.name());
+        // 3. 更新配置状态
+        String newStatus = stage == GrayStage.FULL ? 
+            ConfigStatus.PUBLISHED.name() : 
+            ConfigStatus.GRAYING.name();
+        configVersionMapper.updateStatus(versionId, newStatus);
         
         // 4. 记录灰度发布信息
         String currentStage = grayReleaseMapper.findStageByVersionId(versionId);
@@ -216,13 +174,13 @@ public class PublishService {
         PublishHistory history = PublishHistory.builder()
             .versionId(versionId)
             .configType(configType)
-            .configStatus(ConfigStatus.PUBLISHED.name())
+            .configStatus(newStatus)
             .stage(stage.name())
             .operator(operator)
             .build();
         publishHistoryMapper.insert(history);
         
-        log.info("Successfully published config {} to stage {}", versionId, stage);
+        log.info("Successfully published config {} to stage {} with status {}", versionId, stage, newStatus);
     }
 
     /**

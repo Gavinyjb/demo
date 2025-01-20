@@ -33,6 +33,7 @@ public class PublishController {
     @Operation(summary = "按阶段发布配置")
     public ResponseEntity<Void> publishByStage(@RequestBody PublishStageRequest request) {
         log.info("Publishing config by stage: {}", request);
+
         publishService.publishByStage(
             request.getVersionId(),
             request.getConfigType(),

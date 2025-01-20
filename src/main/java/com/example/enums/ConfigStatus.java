@@ -7,17 +7,32 @@ public enum ConfigStatus {
     /**
      * 草稿状态
      */
-    DRAFT,
+    DRAFT("草稿"),
+    
+    /**
+     * 灰度中状态
+     */
+    GRAYING("灰度中"),
     
     /**
      * 已发布状态
      */
-    PUBLISHED,
+    PUBLISHED("已发布"),
     
     /**
      * 已废弃状态
      */
-    DEPRECATED;
+    DEPRECATED("废弃");
+
+    private final String description;
+
+    ConfigStatus(String description) {
+        this.description = description;
+    }
+
+    public String getDescription() {
+        return description;
+    }
 
     public static boolean contains(String status) {
         try {

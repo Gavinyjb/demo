@@ -203,3 +203,53 @@ http://localhost:8080/swagger-ui.html
 - 配置发布前需要先创建版本
 - 灰度发布需要指定正确的阶段
 - 回滚操作会创建新的版本
+
+> 请用 mermaid 语言使用时序图为我描述一下，一个数据源配置的创建过程中，不同表之间数据的创建情况和关键字段的信息
+```mermaid
+sequenceDiagram
+    participant Client
+    participant DataSourceConfigService
+    participant VersionGenerator
+    participant ConfigVersionMapper
+    participant DataSourceConfigMapper
+    participant DB_Version as config_version表
+    participant DB_DS as conf_data_source_config表
+
+    Client->>DataSourceConfigService: create(DataSourceConfigBO)
+    activate DataSourceConfigService
+    
+    Note over DataSourceConfigService: 转换BO到DO
+    
+    DataSourceConfigService->>DataSourceConfigMapper: findPublishedConfigsByName(name)
+    activate DataSourceConfigMapper
+    DataSourceConfigMapper-->>DataSourceConfigService: List<DataSourceConfig>
+    deactivate DataSourceConfigMapper
+    
+    Note over DataSourceConfigService: 检查是否存在同名配置
+    
+    DataSourceConfigService->>VersionGenerator: generateDataSourceVersion()
+    activate VersionGenerator
+    VersionGenerator-->>DataSourceConfigService: versionId (格式: DS202501090001)
+    deactivate VersionGenerator
+    
+    Note over DataSourceConfigService: 设置初始状态\nconfig.setConfigStatus(DRAFT)
+    
+    DataSourceConfigService->>ConfigVersionMapper: insertVersion
+    activate ConfigVersionMapper
+    ConfigVersionMapper->>DB_Version: INSERT
+    Note over DB_Version: version_id: DS202501090001\nidentifier: name\nconfig_type: DATA_SOURCE\nconfig_status: DRAFT
+    ConfigVersionMapper-->>DataSourceConfigService: void
+    deactivate ConfigVersionMapper
+    
+    DataSourceConfigService->>DataSourceConfigMapper: insertDataSource
+    activate DataSourceConfigMapper
+    DataSourceConfigMapper->>DB_DS: INSERT
+    Note over DB_DS: version_id: DS202501090001\nname: xxx\nsource_group: xxx\ngateway_type: xxx\n... 其他业务字段
+    DataSourceConfigMapper-->>DataSourceConfigService: void
+    deactivate DataSourceConfigMapper
+    
+    DataSourceConfigService-->>Client: DataSourceConfigBO
+    deactivate DataSourceConfigService
+```
+
+> 

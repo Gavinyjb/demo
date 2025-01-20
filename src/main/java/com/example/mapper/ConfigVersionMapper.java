@@ -41,4 +41,14 @@ public interface ConfigVersionMapper {
 
     @Delete("DELETE FROM config_version WHERE version_id = #{versionId}")
     void deleteByVersionId(@Param("versionId") String versionId);
+
+    @Select("SELECT * FROM config_version " +
+            "WHERE identifier = #{identifier} " +
+            "AND config_type = #{configType} " +
+            "AND config_status = 'PUBLISHED' " +
+            "ORDER BY gmt_modified DESC LIMIT 1")
+    ConfigVersion findActiveVersionByIdentifier(
+        @Param("identifier") String identifier,
+        @Param("configType") String configType
+    );
 } 
