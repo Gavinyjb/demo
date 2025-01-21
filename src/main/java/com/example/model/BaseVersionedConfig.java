@@ -10,6 +10,11 @@ import java.time.LocalDateTime;
 @Data
 public abstract class BaseVersionedConfig {
     /**
+     * 主键ID
+     */
+    protected Long id;
+    
+    /**
      * 版本ID
      */
     protected String versionId;

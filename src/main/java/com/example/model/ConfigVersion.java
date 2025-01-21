@@ -7,6 +7,7 @@ import java.time.LocalDateTime;
 @Builder
 @Data
 public class ConfigVersion {
+    private Long id;
     private String versionId;
     private String identifier;
     private String configType;

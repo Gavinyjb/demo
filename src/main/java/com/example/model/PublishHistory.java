@@ -1,6 +1,5 @@
 package com.example.model;
 
-
 import java.time.LocalDateTime;
 import lombok.Builder;
 import lombok.Data;
@@ -12,6 +11,7 @@ import lombok.AllArgsConstructor;
 @AllArgsConstructor
 @Data
 public class PublishHistory {
+    private Long id;
     private String versionId;
     private String configType;  // DATA_SOURCE|API_RECORD|API_META
     private String configStatus;  // DRAFT|PUBLISHED|DEPRECATED
