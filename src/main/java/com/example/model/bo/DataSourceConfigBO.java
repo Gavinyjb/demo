@@ -2,7 +2,7 @@ package com.example.model.bo;
 
 import com.example.model.DataSourceConfig;
 import com.example.model.config.WorkerConfig;
-import com.example.utils.JsonUtils;
+import com.example.util.JsonUtils;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import org.springframework.beans.BeanUtils;

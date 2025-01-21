@@ -15,12 +15,16 @@ public interface PublishHistoryMapper {
             ")")
     void insert(PublishHistory history);
 
-    @Select("SELECT * FROM publish_history " +
+    @Select("SELECT id, version_id, config_type, config_status, stage, operator, " +
+            "gmt_create, gmt_modified " +
+            "FROM publish_history " +
             "WHERE version_id = #{versionId} " +
             "ORDER BY gmt_create DESC")
-    List<PublishHistory> findByVersionId(String versionId);
+    List<PublishHistory> findByVersionId(@Param("versionId") String versionId);
 
-    @Select("SELECT * FROM publish_history " +
+    @Select("SELECT id, version_id, config_type, config_status, stage, operator, " +
+            "gmt_create, gmt_modified " +
+            "FROM publish_history " +
             "WHERE config_type = #{configType} " +
             "AND stage = #{stage} " +
             "ORDER BY gmt_create DESC")
@@ -44,7 +48,9 @@ public interface PublishHistoryMapper {
         @Param("operator") String operator
     );
 
-    @Select("SELECT * FROM publish_history " +
+    @Select("SELECT id, version_id, config_type, config_status, stage, operator, " +
+            "gmt_create, gmt_modified " +
+            "FROM publish_history " +
             "WHERE config_type = #{configType} " +
             "AND config_status = #{configStatus} " +
             "ORDER BY gmt_create DESC")
@@ -53,11 +59,13 @@ public interface PublishHistoryMapper {
         @Param("configStatus") String configStatus
     );
 
-    @Select("SELECT * FROM publish_history " +
+    @Select("SELECT id, version_id, config_type, config_status, stage, operator, " +
+            "gmt_create, gmt_modified " +
+            "FROM publish_history " +
             "WHERE version_id IN (" +
-            "SELECT version_id FROM config_version " +
-            "WHERE identifier = #{identifier} " +
-            "AND config_type = #{configType}" +
+            "  SELECT version_id FROM config_version " +
+            "  WHERE identifier = #{identifier} " +
+            "  AND config_type = #{configType}" +
             ") ORDER BY gmt_create DESC")
     List<PublishHistory> findByIdentifier(
         @Param("identifier") String identifier,

@@ -8,7 +8,10 @@ import java.util.List;
 @Mapper
 public interface ConfigVersionMapper {
 
-    @Select("SELECT * FROM config_version WHERE version_id = #{versionId}")
+    @Select("SELECT id, version_id, identifier, config_type, config_status, " +
+            "gmt_create, gmt_modified " +
+            "FROM config_version " +
+            "WHERE version_id = #{versionId}")
     ConfigVersion findByVersionId(@Param("versionId") String versionId);
     
     @Update("UPDATE config_version SET config_status = #{status} WHERE version_id = #{versionId}")
@@ -17,7 +20,9 @@ public interface ConfigVersionMapper {
         @Param("status") String status
     );
 
-    @Select("SELECT * FROM config_version " +
+    @Select("SELECT id, version_id, identifier, config_type, config_status, " +
+            "gmt_create, gmt_modified " +
+            "FROM config_version " +
             "WHERE identifier = #{identifier} " +
             "AND config_type = #{configType} " +
             "AND config_status = 'PUBLISHED' " +
@@ -62,8 +67,22 @@ public interface ConfigVersionMapper {
         @Param("status") String status
     );
 
-    @Select("SELECT v.* FROM config_version v " +
-            "INNER JOIN config_gray_release g ON v.version_id = g.version_id " +
+    @Select("SELECT version_id, identifier, config_type, config_status, " +
+            "gmt_create, gmt_modified " +
+            "FROM config_version " +
+            "WHERE identifier = #{identifier} " +
+            "AND config_type = #{configType} " +
+            "AND config_status = #{configStatus}")
+    List<ConfigVersion> findByIdentifierAndTypeAndStatus(
+        @Param("identifier") String identifier,
+        @Param("configType") String configType,
+        @Param("configStatus") String configStatus
+    );
+
+    @Select("SELECT v.id, v.version_id, v.identifier, v.config_type, v.config_status, " +
+            "v.gmt_create, v.gmt_modified " +
+            "FROM config_version v " +
+            "LEFT JOIN config_gray_release g ON v.version_id = g.version_id " +
             "WHERE v.identifier = #{identifier} " +
             "AND v.config_type = #{configType} " +
             "AND v.config_status = 'PUBLISHED' " +

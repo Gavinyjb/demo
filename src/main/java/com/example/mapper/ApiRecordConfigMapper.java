@@ -28,19 +28,31 @@ public interface ApiRecordConfigMapper {
             "NOW(), NOW())")
     void insertApiRecord(ApiRecordConfig config);
 
-    @Select("SELECT c.*, v.config_status " +
+    @Select("SELECT c.version_id, c.gateway_type, c.gateway_code, " +
+            "c.api_version, c.api_name, c.basic_config, c.event_config, " +
+            "c.user_identity_config, c.request_config, c.response_config, " +
+            "c.filter_config, c.reference_resource_config, " +
+            "c.gmt_create, c.gmt_modified, v.config_status " +
             "FROM api_record_config c " +
             "INNER JOIN config_version v ON c.version_id = v.version_id " +
             "WHERE c.version_id = #{versionId}")
     ApiRecordConfig findByVersionId(@Param("versionId") String versionId);
 
-    @Select("SELECT c.*, v.config_status " +
+    @Select("SELECT c.version_id, c.gateway_type, c.gateway_code, " +
+            "c.api_version, c.api_name, c.basic_config, c.event_config, " +
+            "c.user_identity_config, c.request_config, c.response_config, " +
+            "c.filter_config, c.reference_resource_config, " +
+            "c.gmt_create, c.gmt_modified, v.config_status " +
             "FROM api_record_config c " +
             "INNER JOIN config_version v ON c.version_id = v.version_id " +
             "WHERE v.config_status = 'PUBLISHED'")
     List<ApiRecordConfig> findAllPublished();
 
-    @Select("SELECT c.*, v.config_status " +
+    @Select("SELECT c.version_id, c.gateway_type, c.gateway_code, " +
+            "c.api_version, c.api_name, c.basic_config, c.event_config, " +
+            "c.user_identity_config, c.request_config, c.response_config, " +
+            "c.filter_config, c.reference_resource_config, " +
+            "c.gmt_create, c.gmt_modified, v.config_status " +
             "FROM api_record_config c " +
             "INNER JOIN config_version v ON c.version_id = v.version_id " +
             "WHERE v.identifier = #{identifier} " +
@@ -48,7 +60,11 @@ public interface ApiRecordConfigMapper {
             "ORDER BY v.gmt_modified DESC")
     List<ApiRecordConfig> findPublishedByIdentifier(@Param("identifier") String identifier);
 
-    @Select("SELECT c.*, v.config_status " +
+    @Select("SELECT c.version_id, c.gateway_type, c.gateway_code, " +
+            "c.api_version, c.api_name, c.basic_config, c.event_config, " +
+            "c.user_identity_config, c.request_config, c.response_config, " +
+            "c.filter_config, c.reference_resource_config, " +
+            "c.gmt_create, c.gmt_modified, v.config_status " +
             "FROM api_record_config c " +
             "INNER JOIN config_version v ON c.version_id = v.version_id " +
             "WHERE v.identifier = #{identifier} " +
@@ -69,7 +85,11 @@ public interface ApiRecordConfigMapper {
         @Param("stage") String stage
     );
 
-    @Select("SELECT c.*, v.config_status " +
+    @Select("SELECT c.version_id, c.gateway_type, c.gateway_code, " +
+            "c.api_version, c.api_name, c.basic_config, c.event_config, " +
+            "c.user_identity_config, c.request_config, c.response_config, " +
+            "c.filter_config, c.reference_resource_config, " +
+            "c.gmt_create, c.gmt_modified, v.config_status " +
             "FROM api_record_config c " +
             "INNER JOIN config_version v ON c.version_id = v.version_id " +
             "LEFT JOIN config_gray_release g ON v.version_id = g.version_id " +
@@ -99,7 +119,11 @@ public interface ApiRecordConfigMapper {
         @Param("configStatus") String configStatus
     );
 
-    @Select("SELECT c.*, v.config_status " +
+    @Select("SELECT c.version_id, c.gateway_type, c.gateway_code, " +
+            "c.api_version, c.api_name, c.basic_config, c.event_config, " +
+            "c.user_identity_config, c.request_config, c.response_config, " +
+            "c.filter_config, c.reference_resource_config, " +
+            "c.gmt_create, c.gmt_modified, v.config_status " +
             "FROM api_record_config c " +
             "INNER JOIN config_version v ON c.version_id = v.version_id " +
             "LEFT JOIN config_gray_release g ON v.version_id = g.version_id " +

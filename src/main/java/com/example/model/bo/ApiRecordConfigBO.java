@@ -1,9 +1,8 @@
 package com.example.model.bo;
 
 import com.example.model.ApiRecordConfig;
-import com.example.model.BaseVersionedConfig;
 import com.example.model.config.BasicConfig;
-import com.example.utils.JsonUtils;
+import com.example.util.JsonUtils;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import org.springframework.beans.BeanUtils;
