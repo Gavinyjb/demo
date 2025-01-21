@@ -30,25 +30,31 @@ public interface DataSourceConfigMapper {
             ")")
     void insertDataSource(DataSourceConfig config);
 
-    @Select("SELECT d.*, v.config_status " +
+    @Select("SELECT d.id, d.version_id, d.name, d.source_group, d.gateway_type, " +
+            "d.dm, d.sls_region_id, d.sls_endpoint, d.sls_project, d.sls_log_store, " +
+            "d.sls_account_id, d.sls_role_arn, d.sls_cursor, d.consume_region, " +
+            "d.consumer_group_name, d.status, d.worker_config, d.comment, " +
+            "d.gmt_create, d.gmt_modified, v.config_status " +
             "FROM conf_data_source_config d " +
             "INNER JOIN config_version v ON d.version_id = v.version_id " +
             "WHERE d.version_id = #{versionId}")
     DataSourceConfig findByVersionId(String versionId);
 
-    @Select("SELECT d.*, v.config_status " +
+    @Select("SELECT d.id, d.version_id, d.name, d.source_group, d.gateway_type, " +
+            "d.dm, d.sls_region_id, d.sls_endpoint, d.sls_project, d.sls_log_store, " +
+            "d.sls_account_id, d.sls_role_arn, d.sls_cursor, d.consume_region, " +
+            "d.consumer_group_name, d.status, d.worker_config, d.comment, " +
+            "d.gmt_create, d.gmt_modified, v.config_status " +
             "FROM conf_data_source_config d " +
             "INNER JOIN config_version v ON d.version_id = v.version_id " +
             "WHERE v.config_status = 'PUBLISHED'")
     List<DataSourceConfig> findAllPublished();
 
-    @Select("SELECT d.*, v.config_status " +
-            "FROM conf_data_source_config d " +
-            "INNER JOIN config_version v ON d.version_id = v.version_id " +
-            "WHERE v.config_status = 'PUBLISHED'")
-    List<DataSourceConfig> findAllPublishedConfigs();
-
-    @Select("SELECT d.*, v.config_status " +
+    @Select("SELECT d.id, d.version_id, d.name, d.source_group, d.gateway_type, " +
+            "d.dm, d.sls_region_id, d.sls_endpoint, d.sls_project, d.sls_log_store, " +
+            "d.sls_account_id, d.sls_role_arn, d.sls_cursor, d.consume_region, " +
+            "d.consumer_group_name, d.status, d.worker_config, d.comment, " +
+            "d.gmt_create, d.gmt_modified, v.config_status " +
             "FROM conf_data_source_config d " +
             "INNER JOIN config_version v ON d.version_id = v.version_id " +
             "WHERE d.name = #{name} " +
@@ -56,20 +62,22 @@ public interface DataSourceConfigMapper {
             "ORDER BY v.gmt_modified DESC")
     List<DataSourceConfig> findPublishedByIdentifier(String name);
 
-    @Select("SELECT d.*, v.config_status " +
+    @Select("SELECT d.id, d.version_id, d.name, d.source_group, d.gateway_type, " +
+            "d.dm, d.sls_region_id, d.sls_endpoint, d.sls_project, d.sls_log_store, " +
+            "d.sls_account_id, d.sls_role_arn, d.sls_cursor, d.consume_region, " +
+            "d.consumer_group_name, d.status, d.worker_config, d.comment, " +
+            "d.gmt_create, d.gmt_modified, v.config_status " +
             "FROM conf_data_source_config d " +
             "INNER JOIN config_version v ON d.version_id = v.version_id " +
             "WHERE d.name = #{name} " +
             "ORDER BY v.gmt_modified DESC")
     List<DataSourceConfig> findAllVersionsByName(String name);
 
-    @Update("UPDATE config_version SET config_status = #{configStatus} WHERE version_id = #{versionId}")
-    void updateVersionStatus(@Param("versionId") String versionId, @Param("configStatus") String configStatus);
-
-    @Insert("INSERT INTO config_gray_release (version_id, stage) VALUES (#{versionId}, #{stage})")
-    void insertGrayRelease(@Param("versionId") String versionId, @Param("stage") String stage);
-
-    @Select("SELECT d.*, v.config_status " +
+    @Select("SELECT d.id, d.version_id, d.name, d.source_group, d.gateway_type, " +
+            "d.dm, d.sls_region_id, d.sls_endpoint, d.sls_project, d.sls_log_store, " +
+            "d.sls_account_id, d.sls_role_arn, d.sls_cursor, d.consume_region, " +
+            "d.consumer_group_name, d.status, d.worker_config, d.comment, " +
+            "d.gmt_create, d.gmt_modified, v.config_status " +
             "FROM conf_data_source_config d " +
             "INNER JOIN config_version v ON d.version_id = v.version_id " +
             "LEFT JOIN config_gray_release g ON v.version_id = g.version_id " +
@@ -99,7 +107,11 @@ public interface DataSourceConfigMapper {
         @Param("configStatus") String configStatus
     );
 
-    @Select("SELECT d.*, v.config_status " +
+    @Select("SELECT d.id, d.version_id, d.name, d.source_group, d.gateway_type, " +
+            "d.dm, d.sls_region_id, d.sls_endpoint, d.sls_project, d.sls_log_store, " +
+            "d.sls_account_id, d.sls_role_arn, d.sls_cursor, d.consume_region, " +
+            "d.consumer_group_name, d.status, d.worker_config, d.comment, " +
+            "d.gmt_create, d.gmt_modified, v.config_status " +
             "FROM conf_data_source_config d " +
             "INNER JOIN config_version v ON d.version_id = v.version_id " +
             "LEFT JOIN config_gray_release g ON v.version_id = g.version_id " +

@@ -28,7 +28,7 @@ public interface ApiRecordConfigMapper {
             "NOW(), NOW())")
     void insertApiRecord(ApiRecordConfig config);
 
-    @Select("SELECT c.version_id, c.gateway_type, c.gateway_code, " +
+    @Select("SELECT c.id, c.version_id, c.gateway_type, c.gateway_code, " +
             "c.api_version, c.api_name, c.basic_config, c.event_config, " +
             "c.user_identity_config, c.request_config, c.response_config, " +
             "c.filter_config, c.reference_resource_config, " +
@@ -38,7 +38,7 @@ public interface ApiRecordConfigMapper {
             "WHERE c.version_id = #{versionId}")
     ApiRecordConfig findByVersionId(@Param("versionId") String versionId);
 
-    @Select("SELECT c.version_id, c.gateway_type, c.gateway_code, " +
+    @Select("SELECT c.id, c.version_id, c.gateway_type, c.gateway_code, " +
             "c.api_version, c.api_name, c.basic_config, c.event_config, " +
             "c.user_identity_config, c.request_config, c.response_config, " +
             "c.filter_config, c.reference_resource_config, " +
@@ -48,7 +48,7 @@ public interface ApiRecordConfigMapper {
             "WHERE v.config_status = 'PUBLISHED'")
     List<ApiRecordConfig> findAllPublished();
 
-    @Select("SELECT c.version_id, c.gateway_type, c.gateway_code, " +
+    @Select("SELECT c.id, c.version_id, c.gateway_type, c.gateway_code, " +
             "c.api_version, c.api_name, c.basic_config, c.event_config, " +
             "c.user_identity_config, c.request_config, c.response_config, " +
             "c.filter_config, c.reference_resource_config, " +
@@ -60,7 +60,7 @@ public interface ApiRecordConfigMapper {
             "ORDER BY v.gmt_modified DESC")
     List<ApiRecordConfig> findPublishedByIdentifier(@Param("identifier") String identifier);
 
-    @Select("SELECT c.version_id, c.gateway_type, c.gateway_code, " +
+    @Select("SELECT c.id, c.version_id, c.gateway_type, c.gateway_code, " +
             "c.api_version, c.api_name, c.basic_config, c.event_config, " +
             "c.user_identity_config, c.request_config, c.response_config, " +
             "c.filter_config, c.reference_resource_config, " +
@@ -85,7 +85,7 @@ public interface ApiRecordConfigMapper {
         @Param("stage") String stage
     );
 
-    @Select("SELECT c.version_id, c.gateway_type, c.gateway_code, " +
+    @Select("SELECT c.id, c.version_id, c.gateway_type, c.gateway_code, " +
             "c.api_version, c.api_name, c.basic_config, c.event_config, " +
             "c.user_identity_config, c.request_config, c.response_config, " +
             "c.filter_config, c.reference_resource_config, " +
@@ -119,7 +119,7 @@ public interface ApiRecordConfigMapper {
         @Param("configStatus") String configStatus
     );
 
-    @Select("SELECT c.version_id, c.gateway_type, c.gateway_code, " +
+    @Select("SELECT c.id, c.version_id, c.gateway_type, c.gateway_code, " +
             "c.api_version, c.api_name, c.basic_config, c.event_config, " +
             "c.user_identity_config, c.request_config, c.response_config, " +
             "c.filter_config, c.reference_resource_config, " +

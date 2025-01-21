@@ -30,19 +30,31 @@ public interface ApiMetaConfigMapper {
             ")")
     void insertVersion(ApiMetaConfig config);
 
-    @Select("SELECT m.*, v.config_status " +
+    @Select("SELECT m.id, m.version_id, m.api_name, m.product, m.gateway_type, " +
+            "m.dm, m.gateway_code, m.api_version, m.actiontrail_code, m.operation_type, " +
+            "m.description, m.visibility, m.isolation_type, m.service_type, " +
+            "m.response_body_log, m.invoke_type, m.resource_spec, m.effective_flag, " +
+            "m.audit_status, m.gmt_create, m.gmt_modified, v.config_status " +
             "FROM amp_api_meta m " +
             "INNER JOIN config_version v ON m.version_id = v.version_id " +
             "WHERE m.version_id = #{versionId}")
     ApiMetaConfig findByVersionId(String versionId);
 
-    @Select("SELECT m.*, v.config_status " +
+    @Select("SELECT m.id, m.version_id, m.api_name, m.product, m.gateway_type, " +
+            "m.dm, m.gateway_code, m.api_version, m.actiontrail_code, m.operation_type, " +
+            "m.description, m.visibility, m.isolation_type, m.service_type, " +
+            "m.response_body_log, m.invoke_type, m.resource_spec, m.effective_flag, " +
+            "m.audit_status, m.gmt_create, m.gmt_modified, v.config_status " +
             "FROM amp_api_meta m " +
             "INNER JOIN config_version v ON m.version_id = v.version_id " +
             "WHERE v.config_status = 'PUBLISHED'")
     List<ApiMetaConfig> findAllPublished();
 
-    @Select("SELECT m.*, v.config_status " +
+    @Select("SELECT m.id, m.version_id, m.api_name, m.product, m.gateway_type, " +
+            "m.dm, m.gateway_code, m.api_version, m.actiontrail_code, m.operation_type, " +
+            "m.description, m.visibility, m.isolation_type, m.service_type, " +
+            "m.response_body_log, m.invoke_type, m.resource_spec, m.effective_flag, " +
+            "m.audit_status, m.gmt_create, m.gmt_modified, v.config_status " +
             "FROM amp_api_meta m " +
             "INNER JOIN config_version v ON m.version_id = v.version_id " +
             "LEFT JOIN config_gray_release g ON v.version_id = g.version_id " +
@@ -57,7 +69,11 @@ public interface ApiMetaConfigMapper {
         @Param("stage") String stage
     );
 
-    @Select("SELECT m.*, v.config_status " +
+    @Select("SELECT m.id, m.version_id, m.api_name, m.product, m.gateway_type, " +
+            "m.dm, m.gateway_code, m.api_version, m.actiontrail_code, m.operation_type, " +
+            "m.description, m.visibility, m.isolation_type, m.service_type, " +
+            "m.response_body_log, m.invoke_type, m.resource_spec, m.effective_flag, " +
+            "m.audit_status, m.gmt_create, m.gmt_modified, v.config_status " +
             "FROM amp_api_meta m " +
             "INNER JOIN config_version v ON m.version_id = v.version_id " +
             "WHERE v.identifier = #{identifier} " +
@@ -65,7 +81,11 @@ public interface ApiMetaConfigMapper {
             "ORDER BY v.gmt_modified DESC")
     List<ApiMetaConfig> findPublishedByIdentifier(@Param("identifier") String identifier);
 
-    @Select("SELECT m.*, v.config_status " +
+    @Select("SELECT m.id, m.version_id, m.api_name, m.product, m.gateway_type, " +
+            "m.dm, m.gateway_code, m.api_version, m.actiontrail_code, m.operation_type, " +
+            "m.description, m.visibility, m.isolation_type, m.service_type, " +
+            "m.response_body_log, m.invoke_type, m.resource_spec, m.effective_flag, " +
+            "m.audit_status, m.gmt_create, m.gmt_modified, v.config_status " +
             "FROM amp_api_meta m " +
             "INNER JOIN config_version v ON m.version_id = v.version_id " +
             "LEFT JOIN config_gray_release g ON v.version_id = g.version_id " +
