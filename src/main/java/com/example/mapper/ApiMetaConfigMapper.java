@@ -23,7 +23,9 @@ public interface ApiMetaConfigMapper {
             "version_id, identifier, config_type, config_status, " +
             "gmt_create, gmt_modified" +
             ") VALUES (" +
-            "#{versionId}, #{identifier}, 'API_META', #{configStatus}, " +
+            "#{versionId}, " +
+            "CONCAT(#{gatewayType}, ':', #{gatewayCode}, ':', #{apiVersion}, ':', #{apiName}), " +
+            "'API_META', #{configStatus}, " +
             "NOW(), NOW()" +
             ")")
     void insertVersion(ApiMetaConfig config);
@@ -45,9 +47,10 @@ public interface ApiMetaConfigMapper {
             "INNER JOIN config_version v ON m.version_id = v.version_id " +
             "LEFT JOIN config_gray_release g ON v.version_id = g.version_id " +
             "WHERE v.identifier = #{identifier} " +
-            "AND v.config_status = 'PUBLISHED' " +
+            "AND v.config_status IN ('PUBLISHED', 'GRAYING') " +
             "AND (g.stage = #{stage} OR g.stage = 'FULL') " +
-            "ORDER BY g.stage = 'FULL' DESC, v.gmt_modified DESC " +
+            "ORDER BY CASE WHEN g.stage = #{stage} THEN 1 ELSE 0 END DESC, " +
+            "v.gmt_modified DESC " +
             "LIMIT 1")
     ApiMetaConfig findActiveConfigByIdentifierAndStage(
         @Param("identifier") String identifier,
@@ -60,16 +63,7 @@ public interface ApiMetaConfigMapper {
             "WHERE v.identifier = #{identifier} " +
             "AND v.config_status = 'PUBLISHED' " +
             "ORDER BY v.gmt_modified DESC")
-    List<ApiMetaConfig> findPublishedConfigsByIdentifier(@Param("identifier") String identifier);
-
-    @Update("UPDATE config_version SET config_status = #{configStatus} WHERE version_id = #{versionId}")
-    void updateVersionStatus(@Param("versionId") String versionId, @Param("configStatus") String configStatus);
-
-    @Insert("INSERT INTO config_gray_release (version_id, stage) VALUES (#{versionId}, #{stage})")
-    void insertGrayRelease(@Param("versionId") String versionId, @Param("stage") String stage);
-
-    @Delete("DELETE FROM amp_api_meta WHERE version_id = #{versionId}")
-    void deleteByVersionId(@Param("versionId") String versionId);
+    List<ApiMetaConfig> findPublishedByIdentifier(@Param("identifier") String identifier);
 
     @Select("SELECT m.*, v.config_status " +
             "FROM amp_api_meta m " +
@@ -78,4 +72,7 @@ public interface ApiMetaConfigMapper {
             "WHERE v.config_status = 'PUBLISHED' " +
             "AND (g.stage = #{stage} OR g.stage = 'FULL')")
     List<ApiMetaConfig> findByStage(@Param("stage") String stage);
+
+    @Delete("DELETE FROM amp_api_meta WHERE version_id = #{versionId}")
+    void deleteByVersionId(@Param("versionId") String versionId);
 } 

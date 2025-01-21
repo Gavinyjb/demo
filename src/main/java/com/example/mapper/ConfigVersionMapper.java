@@ -7,7 +7,6 @@ import java.util.List;
 
 @Mapper
 public interface ConfigVersionMapper {
-    // ... 其他方法保持不变
 
     @Select("SELECT * FROM config_version WHERE version_id = #{versionId}")
     ConfigVersion findByVersionId(@Param("versionId") String versionId);

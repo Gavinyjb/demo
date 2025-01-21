@@ -8,7 +8,6 @@ import com.example.enums.ConfigStatus;
 import com.example.model.bo.ApiRecordConfigBO;
 import com.example.util.RegionProvider;
 import com.example.util.VersionGenerator;
-import com.example.config.VersionProperties;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -16,10 +15,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.HashSet;
 import java.util.stream.Collectors;
-import org.springframework.beans.BeanUtils;
-import com.example.util.JsonUtils;
-import com.example.model.ConfigVersion;
-import com.example.mapper.ConfigVersionMapper;
 import com.example.exception.ConfigNotFoundException;
 import lombok.extern.slf4j.Slf4j;
 
@@ -45,12 +40,7 @@ public class ApiRecordConfigService implements BaseConfigService<ApiRecordConfig
         ApiRecordConfig config = configBO.toDO();
         try {
             // 检查是否已存在相同标识的配置
-            List<ApiRecordConfig> existingConfigs = apiRecordConfigMapper.findPublishedConfigsByIdentifier(
-                config.getGatewayType(),
-                config.getGatewayCode(),
-                config.getApiVersion(),
-                config.getApiName()
-            );
+            List<ApiRecordConfig> existingConfigs = apiRecordConfigMapper.findPublishedByIdentifier(config.getIdentifier());
             if (!existingConfigs.isEmpty()) {
                 throw new RuntimeException(String.format(
                     "Already exists config with identifier: %s:%s:%s:%s",
@@ -71,7 +61,7 @@ public class ApiRecordConfigService implements BaseConfigService<ApiRecordConfig
             
             log.info("Inserting api record: {}", config);
             // 再插入配置信息
-            apiRecordConfigMapper.insert(config);
+            apiRecordConfigMapper.insertApiRecord(config);
             
             return ApiRecordConfigBO.fromDO(config);
         } catch (Exception e) {
@@ -101,7 +91,7 @@ public class ApiRecordConfigService implements BaseConfigService<ApiRecordConfig
 
             log.info("Inserting api record for update: {}", config);
             // 4. 再插入配置信息
-            apiRecordConfigMapper.insert(config);
+            apiRecordConfigMapper.insertApiRecord(config);
 
             return ApiRecordConfigBO.fromDO(config);
         } catch (Exception e) {

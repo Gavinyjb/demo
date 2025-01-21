@@ -1,6 +1,5 @@
 package com.example.service;
 
-import com.example.model.DataSourceConfig;
 import com.example.model.bo.DataSourceConfigBO;
 import com.example.model.config.WorkerConfig;
 import com.example.enums.ConfigStatus;
@@ -8,7 +7,6 @@ import com.example.enums.GrayStage;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.annotation.Rollback;
 import org.springframework.transaction.annotation.Transactional;
 
 import static org.junit.jupiter.api.Assertions.*;

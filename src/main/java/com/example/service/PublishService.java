@@ -379,6 +379,7 @@ public class PublishService {
         ConfigVersion grayingVersion = configVersionMapper.findVersionByIdentifierAndStatus(
             identifier, configType, ConfigStatus.GRAYING.name()
         );
+
         if (grayingVersion == null) {
             throw new RuntimeException("No graying config found");
         }

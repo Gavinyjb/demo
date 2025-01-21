@@ -54,7 +54,7 @@ public interface DataSourceConfigMapper {
             "WHERE d.name = #{name} " +
             "AND v.config_status = 'PUBLISHED' " +
             "ORDER BY v.gmt_modified DESC")
-    List<DataSourceConfig> findPublishedConfigsByName(String name);
+    List<DataSourceConfig> findPublishedByIdentifier(String name);
 
     @Select("SELECT d.*, v.config_status " +
             "FROM conf_data_source_config d " +

@@ -5,6 +5,7 @@ import com.example.dto.ConfigDiffResponse;
 import com.example.model.ApiMetaConfig;
 import com.example.mapper.ApiMetaConfigMapper;
 import com.example.enums.ConfigStatus;
+import com.example.model.bo.ApiMetaConfigBO;
 import com.example.util.RegionProvider;
 import com.example.util.VersionGenerator;
 import com.example.config.VersionProperties;
@@ -15,12 +16,14 @@ import java.util.List;
 import java.util.Set;
 import java.util.HashSet;
 import java.util.stream.Collectors;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * API Meta配置服务
  */
+@Slf4j
 @Service
-public class ApiMetaConfigService implements BaseConfigService<ApiMetaConfig> {
+public class ApiMetaConfigService implements BaseConfigService<ApiMetaConfigBO> {
     
     @Autowired
     private ApiMetaConfigMapper apiMetaConfigMapper;
@@ -35,99 +38,95 @@ public class ApiMetaConfigService implements BaseConfigService<ApiMetaConfig> {
     private VersionProperties versionProperties;
 
     @Override
-    @Transactional
-    public ApiMetaConfig create(ApiMetaConfig config) {
-        if (hasSameApiMetaConfig(config)) {
-            throw new RuntimeException("Already exists config with identifier: " + config.getIdentifier());
+    @Transactional(rollbackFor = Exception.class)
+    public ApiMetaConfigBO create(ApiMetaConfigBO configBO) {
+        ApiMetaConfig config = configBO.toDO();
+        try {
+            // 检查是否已存在相同标识的配置
+            List<ApiMetaConfig> existingConfigs = apiMetaConfigMapper.findPublishedByIdentifier(config.getIdentifier());
+            if (!existingConfigs.isEmpty()) {
+                throw new RuntimeException("Already exists config with identifier: " + config.getIdentifier());
+            }
+            
+            // 设置版本信息
+            config.setVersionId(versionGenerator.generateApiMetaVersion());
+            config.setConfigStatus(ConfigStatus.DRAFT.name());
+
+            log.info("Inserting version record: {}", config);
+            // 先插入版本信息
+            apiMetaConfigMapper.insertVersion(config);
+            log.info("Inserting api meta record: {}", config);
+            // 再插入配置信息
+            apiMetaConfigMapper.insertApiMeta(config);            
+            return ApiMetaConfigBO.fromDO(config);
+        } catch (Exception e) {
+            log.error("Failed to create api meta config: {}", config, e);
+            throw new RuntimeException("Failed to create api meta config", e);
         }
-        
-        config.setVersionId(versionGenerator.generateApiMetaVersion());
-        config.setConfigStatus(ConfigStatus.DRAFT.name());
-        apiMetaConfigMapper.insertApiMeta(config);
-        apiMetaConfigMapper.insertVersion(config);
-        
-        cleanupOldVersions(config);
-        
-        return config;
     }
 
     @Override
     @Transactional
-    public ApiMetaConfig update(String oldVersionId, ApiMetaConfig newConfig) {
+    public ApiMetaConfigBO update(String oldVersionId, ApiMetaConfigBO newConfigBO) {
         ApiMetaConfig oldConfig = findByVersionId(oldVersionId);
         if (oldConfig == null) {
             throw new RuntimeException("原配置版本不存在");
         }
         
-        newConfig.setVersionId(versionGenerator.generateApiMetaVersion());
-        newConfig.setConfigStatus(ConfigStatus.DRAFT.name());
-        apiMetaConfigMapper.insertApiMeta(newConfig);
-        apiMetaConfigMapper.insertVersion(newConfig);
+        // 设置版本信息
+        newConfigBO.setVersionId(versionGenerator.generateApiMetaVersion());
+        newConfigBO.setConfigStatus(ConfigStatus.DRAFT.name());
         
-        cleanupOldVersions(newConfig);
-        
-        return newConfig;
-    }
-
-    @Override
-    public List<ApiMetaConfig> getAllPublished() {
-        return apiMetaConfigMapper.findAllPublished();
-    }
-
-    @Override
-    public ApiMetaConfig findByVersionId(String versionId) {
-        return apiMetaConfigMapper.findByVersionId(versionId);
-    }
-
-
-    @Override
-    public List<ApiMetaConfig> getActiveByRegion(String region) {
-        if (!regionProvider.isRegionSupported(region)) {
-            throw new IllegalArgumentException("Unsupported region: " + region);
+        try {
+            // 先插入版本信息
+            apiMetaConfigMapper.insertVersion(newConfigBO.toDO());
+            
+            // 再插入配置信息
+            apiMetaConfigMapper.insertApiMeta(newConfigBO.toDO());
+            
+            return newConfigBO;
+        } catch (Exception e) {
+            log.error("Failed to update api meta config", e);
+            throw new RuntimeException("Failed to update api meta config", e);
         }
+    }
+
+    @Override
+    public List<ApiMetaConfigBO> getAllPublished() {
+        return apiMetaConfigMapper.findAllPublished().stream()
+            .map(ApiMetaConfigBO::fromDO)
+            .collect(Collectors.toList());
+    }
+
+    @Override
+    public ApiMetaConfigBO findByVersionId(String versionId) {
+        ApiMetaConfig config = apiMetaConfigMapper.findByVersionId(versionId);
+        return config != null ? ApiMetaConfigBO.fromDO(config) : null;
+    }
+
+    @Override
+    public List<ApiMetaConfigBO> getActiveByRegion(String region) {
         String stage = regionProvider.getStageByRegion(region);
-        return apiMetaConfigMapper.findByStage(stage);
+        return apiMetaConfigMapper.findByStage(stage).stream()
+            .map(ApiMetaConfigBO::fromDO)
+            .collect(Collectors.toList());
     }
 
     @Override
-    public List<ApiMetaConfig> getPublishedByIdentifier(String identifier) {
-        return apiMetaConfigMapper.findPublishedConfigsByIdentifier(identifier);
+    public List<ApiMetaConfigBO> getPublishedByIdentifier(String identifier) {
+        return apiMetaConfigMapper.findPublishedByIdentifier(identifier).stream()
+            .map(ApiMetaConfigBO::fromDO)
+            .collect(Collectors.toList());
     }
 
     @Override
-    public ApiMetaConfig getActiveByIdentifierAndRegion(String identifier, String region) {
-        if (!regionProvider.isRegionSupported(region)) {
-            throw new IllegalArgumentException("Unsupported region: " + region);
-        }
+    public ApiMetaConfigBO getActiveByIdentifierAndRegion(String identifier, String region) {
         String stage = regionProvider.getStageByRegion(region);
-        return apiMetaConfigMapper.findActiveConfigByIdentifierAndStage(identifier, stage);
+        ApiMetaConfig config = apiMetaConfigMapper.findActiveConfigByIdentifierAndStage(identifier, stage);
+        return config != null ? ApiMetaConfigBO.fromDO(config) : null;
     }
 
-    @Transactional
-    public void publish(String versionId, String stage, String operator) {
-        apiMetaConfigMapper.updateVersionStatus(versionId, ConfigStatus.PUBLISHED.name());
-        apiMetaConfigMapper.insertGrayRelease(versionId, stage);
-    }
-
-    private boolean hasSameApiMetaConfig(ApiMetaConfig config) {
-        List<ApiMetaConfig> existingConfigs = getAllPublished();
-        return existingConfigs.stream()
-            .anyMatch(existing -> existing.getIdentifier().equals(config.getIdentifier()));
-    }
-
-    private void cleanupOldVersions(ApiMetaConfig config) {
-        List<ApiMetaConfig> allVersions = apiMetaConfigMapper.findPublishedConfigsByIdentifier(config.getIdentifier());
-        if (allVersions.size() > versionProperties.getMaxApiMetaVersions()) {
-            allVersions.stream()
-                .skip(versionProperties.getMaxApiMetaVersions())
-                .forEach(c -> apiMetaConfigMapper.deleteByVersionId(c.getVersionId()));
-        }
-    }
-
-    /**
-     * 获取配置变更信息
-     */
-    public ConfigDiffResponse<ApiMetaConfig> getConfigDiff(ConfigDiffRequest request) {
+    public ConfigDiffResponse<ApiMetaConfigBO> getConfigDiff(ConfigDiffRequest request) {
         String stage = regionProvider.getStageByRegion(request.getRegion());
         
         // 获取当前所有生效的配置
@@ -146,8 +145,10 @@ public class ApiMetaConfigService implements BaseConfigService<ApiMetaConfig> {
             .collect(Collectors.toList());
         
         // 构建响应
-        return ConfigDiffResponse.<ApiMetaConfig>builder()
-            .updatedConfigs(updatedConfigs)
+        return ConfigDiffResponse.<ApiMetaConfigBO>builder()
+            .updatedConfigs(updatedConfigs.stream()
+                .map(ApiMetaConfigBO::fromDO)
+                .collect(Collectors.toList()))
             .deprecatedVersionIds(deprecatedVersionIds)
             .build();
     }
@@ -159,6 +160,6 @@ public class ApiMetaConfigService implements BaseConfigService<ApiMetaConfig> {
 
     @Override
     public int getMaxDeprecatedVersions() {
-        return 8;
+        return 5;
     }
 } 

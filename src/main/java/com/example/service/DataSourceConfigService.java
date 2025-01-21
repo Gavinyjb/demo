@@ -40,7 +40,7 @@ public class DataSourceConfigService implements BaseConfigService<DataSourceConf
         DataSourceConfig config = configBO.toDO();
         try {
             // 检查是否已存在相同标识的配置
-            List<DataSourceConfig> existingConfigs = dataSourceConfigMapper.findPublishedConfigsByName(config.getName());
+            List<DataSourceConfig> existingConfigs = dataSourceConfigMapper.findPublishedByIdentifier(config.getIdentifier());
             if (!existingConfigs.isEmpty()) {
                 throw new RuntimeException("Already exists config with name: " + config.getName());
             }
@@ -112,7 +112,7 @@ public class DataSourceConfigService implements BaseConfigService<DataSourceConf
 
     @Override
     public List<DataSourceConfigBO> getPublishedByIdentifier(String identifier) {
-        return dataSourceConfigMapper.findPublishedConfigsByName(identifier).stream()
+        return dataSourceConfigMapper.findPublishedByIdentifier(identifier).stream()
             .map(DataSourceConfigBO::fromDO)
             .collect(Collectors.toList());
     }
