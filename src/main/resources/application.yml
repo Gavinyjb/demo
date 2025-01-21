@@ -40,3 +40,6 @@ logging:
   level:
     com.example.mapper: DEBUG
     org.springframework.jdbc.core: TRACE
+
+migration:
+  enabled: false  # 默认关闭迁移

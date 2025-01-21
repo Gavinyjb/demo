@@ -93,4 +93,10 @@ public interface ConfigVersionMapper {
         @Param("configType") String configType,
         @Param("currentVersionId") String currentVersionId
     );
+
+    @Insert("INSERT INTO config_version (version_id, identifier, config_type, config_status, " +
+            "gmt_create, gmt_modified) VALUES (" +
+            "#{versionId}, #{identifier}, #{configType}, #{configStatus}, " +
+            "NOW(), NOW())")
+    void insert(ConfigVersion configVersion);
 } 

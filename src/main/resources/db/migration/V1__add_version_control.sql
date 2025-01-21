@@ -1,28 +1,27 @@
--- 1. 先备份原表
-CREATE TABLE data_source_config_backup AS SELECT * FROM data_source_config;
+-- 1. 备份原表
+CREATE TABLE conf_data_source_config_backup AS SELECT * FROM conf_data_source_config;
+CREATE TABLE amp_api_meta_backup AS SELECT * FROM amp_api_meta;
 
--- 2. 添加新字段
-ALTER TABLE data_source_config 
-ADD COLUMN version_id VARCHAR(64) COMMENT '版本ID' AFTER id,
-ADD COLUMN status VARCHAR(32) DEFAULT 'PUBLISHED' COMMENT '状态' AFTER data_fetch_interval_millis,
-ADD COLUMN effective_gray_groups TEXT COMMENT '生效的灰度组' AFTER status,
-ADD UNIQUE KEY uk_version (version_id);
+-- 2. 为存量表添加版本ID字段
+ALTER TABLE conf_data_source_config 
+ADD COLUMN version_id VARCHAR(256) COMMENT '版本ID',
+ADD INDEX idx_version_id (version_id);
 
--- 3. 更新存量数据，使用 'all' 表示全量生效
-UPDATE data_source_config 
-SET version_id = CONCAT('DS', DATE_FORMAT(IFNULL(gmt_create, NOW()), '%Y%m%d'), LPAD(@row_number:=@row_number+1, 4, '0')),
-    status = 'PUBLISHED',
-    effective_gray_groups = 'all'
-WHERE version_id IS NULL;
+ALTER TABLE amp_api_meta 
+ADD COLUMN version_id VARCHAR(256) COMMENT '版本ID',
+ADD INDEX idx_version_id (version_id);
 
--- 4. 为每个存量配置生成发布历史记录
-INSERT INTO publish_history (version_id, config_type, status, gray_groups, operator, gmt_create, gmt_modified)
-SELECT 
-    version_id,
-    'DATA_SOURCE',
-    'PUBLISHED',
-    effective_gray_groups,
-    'system_migration',
-    gmt_create,
-    gmt_modified
-FROM data_source_config; 
+-- 3. 创建回滚脚本（需要时使用）
+-- 回滚数据源配置
+-- DROP INDEX idx_version_id ON conf_data_source_config;
+-- ALTER TABLE conf_data_source_config DROP COLUMN version_id;
+-- TRUNCATE TABLE conf_data_source_config;
+-- INSERT INTO conf_data_source_config SELECT * FROM conf_data_source_config_backup;
+-- DROP TABLE conf_data_source_config_backup;
+
+-- 回滚API元数据配置
+-- DROP INDEX idx_version_id ON amp_api_meta;
+-- ALTER TABLE amp_api_meta DROP COLUMN version_id;
+-- TRUNCATE TABLE amp_api_meta;
+-- INSERT INTO amp_api_meta SELECT * FROM amp_api_meta_backup;
+-- DROP TABLE amp_api_meta_backup; 

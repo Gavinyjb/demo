@@ -11,6 +11,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigInteger;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
@@ -26,7 +27,7 @@ public class DataMigrationUtil {
     private final PublishHistoryMapper publishHistoryMapper;
     private final VersionGenerator versionGenerator;
     
-    private static final int BATCH_SIZE = 100;
+    public static final int BATCH_SIZE = 100;
 
     /**
      * 迁移数据源配置
@@ -83,27 +84,32 @@ public class DataMigrationUtil {
     }
 
     private void migrateRecord(Map<String, Object> record, ConfigType configType) {
-        // 1. 生成版本ID
-        String versionId = generateVersionId(configType);
-        
-        // 2. 构建标识符
-        String identifier = buildIdentifier(record, configType);
-        
-        // 3. 插入版本记录
-        configVersionMapper.insert(buildConfigVersion(versionId, identifier, configType));
-        
-        // 4. 更新原记录的version_id
-        configMigrationMapper.updateVersionId(
-            configType.getTableName(),
-            versionId,
-            (Long) record.get("id")
-        );
-        
-        // 5. 插入发布历史
-        publishHistoryMapper.insert(buildPublishHistory(versionId, configType));
-        
-        // 6. 插入灰度发布记录（全量发布）
-        configGrayReleaseMapper.insert(versionId, GrayStage.FULL.name());
+        try {
+            // 1. 生成版本ID
+            String versionId = generateVersionId(configType);
+            
+            // 2. 构建标识符
+            String identifier = buildIdentifier(record, configType);
+            
+            // 3. 插入版本记录
+            configVersionMapper.insert(buildConfigVersion(versionId, identifier, configType));
+            
+            // 4. 更新原记录的version_id
+            configMigrationMapper.updateVersionId(
+                configType.getTableName(),
+                versionId,
+                getIdAsBigInteger(record)
+            );
+            
+            // 5. 插入发布历史
+            publishHistoryMapper.insert(buildPublishHistory(versionId, configType));
+            
+            // 6. 插入灰度发布记录（全量发布）
+            configGrayReleaseMapper.insert(versionId, GrayStage.FULL.name());
+        } catch (Exception e) {
+            log.error("迁移记录失败: {}", record, e);
+            throw e;  // 重新抛出异常，让事务回滚
+        }
     }
 
     private String generateVersionId(ConfigType configType) {
@@ -180,6 +186,31 @@ public class DataMigrationUtil {
         
         if (unmigratedCount > 0 || missingVersions > 0 || missingHistory > 0) {
             log.warn("{}存在迁移异常", configType.name());
+        }
+    }
+
+    /**
+     * 安全地获取ID值
+     */
+    private BigInteger getIdAsBigInteger(Map<String, Object> record) {
+        Object idObj = record.get("id");
+        if (idObj == null) {
+            throw new IllegalStateException("Record id is null");
+        }
+
+        if (idObj instanceof BigInteger) {
+            return (BigInteger) idObj;
+        } else if (idObj instanceof Long) {
+            return BigInteger.valueOf((Long) idObj);
+        } else if (idObj instanceof Integer) {
+            return BigInteger.valueOf((Integer) idObj);
+        } else {
+            throw new IllegalStateException(
+                String.format("Unexpected id type: %s, value: %s", 
+                    idObj.getClass().getName(), 
+                    idObj.toString()
+                )
+            );
         }
     }
 } 

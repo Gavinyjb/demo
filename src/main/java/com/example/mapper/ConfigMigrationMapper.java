@@ -1,6 +1,7 @@
 package com.example.mapper;
 
 import org.apache.ibatis.annotations.*;
+import java.math.BigInteger;
 import java.util.List;
 import java.util.Map;
 
@@ -14,7 +15,7 @@ public interface ConfigMigrationMapper {
     void updateVersionId(
         @Param("tableName") String tableName,
         @Param("versionId") String versionId,
-        @Param("id") Long id
+        @Param("id") BigInteger id
     );
     
     @Select("SELECT COUNT(*) FROM ${tableName} WHERE version_id IS NULL")
