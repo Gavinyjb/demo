@@ -11,6 +11,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Slf4j
 @RestController
@@ -75,12 +76,54 @@ public class ApiRecordConfigController {
         private String region;
     }
 
+    @Data
+    public static class ApiRecordResponse {
+        private String versionId;
+        private String gatewayType;
+        private String gatewayCode;
+        private String apiVersion;
+        private String apiName;
+        private String basicConfig;
+        private String eventConfig;
+        private String userIdentityConfig;
+        private String requestConfig;
+        private String responseConfig;
+        private String filterConfig;
+        private String referenceResourceConfig;
+        private String configStatus;
+        private String gmtCreate;
+        private String gmtModified;
+
+        public static ApiRecordResponse fromBO(ApiRecordConfigBO bo) {
+            if (bo == null) {
+                return null;
+            }
+            ApiRecordResponse response = new ApiRecordResponse();
+            response.setVersionId(bo.getVersionId());
+            response.setGatewayType(bo.getGatewayType());
+            response.setGatewayCode(bo.getGatewayCode());
+            response.setApiVersion(bo.getApiVersion());
+            response.setApiName(bo.getApiName());
+            response.setBasicConfig(bo.getBasicConfig());
+            response.setEventConfig(bo.getEventConfig());
+            response.setUserIdentityConfig(bo.getUserIdentityConfig());
+            response.setRequestConfig(bo.getRequestConfig());
+            response.setResponseConfig(bo.getResponseConfig());
+            response.setFilterConfig(bo.getFilterConfig());
+            response.setReferenceResourceConfig(bo.getReferenceResourceConfig());
+            response.setConfigStatus(bo.getConfigStatus());
+            response.setGmtCreate(bo.getGmtCreate() != null ? bo.getGmtCreate().toString() : null);
+            response.setGmtModified(bo.getGmtModified() != null ? bo.getGmtModified().toString() : null);
+            return response;
+        }
+    }
+
     /**
      * 创建API记录配置
      */
     @PostMapping("/create")
     @Operation(summary = "创建API记录配置")
-    public ResponseEntity<ApiRecordConfigBO> create(@RequestBody CreateRequest request) {
+    public ResponseEntity<ApiRecordResponse> create(@RequestBody CreateRequest request) {
         ApiRecordConfigBO config = new ApiRecordConfigBO();
         config.setGatewayType(request.getGatewayType());
         config.setGatewayCode(request.getGatewayCode());
@@ -94,7 +137,7 @@ public class ApiRecordConfigController {
         config.setFilterConfig(request.getFilterConfig());
         config.setReferenceResourceConfig(request.getReferenceResourceConfig());
         
-        return ResponseEntity.ok(apiRecordConfigService.create(config));
+        return ResponseEntity.ok(ApiRecordResponse.fromBO(apiRecordConfigService.create(config)));
     }
 
     /**
@@ -102,7 +145,7 @@ public class ApiRecordConfigController {
      */
     @PostMapping("/update")
     @Operation(summary = "更新API记录配置")
-    public ResponseEntity<ApiRecordConfigBO> update(@RequestBody UpdateRequest request) {
+    public ResponseEntity<ApiRecordResponse> update(@RequestBody UpdateRequest request) {
         ApiRecordConfigBO config = new ApiRecordConfigBO();
         config.setGatewayType(request.getGatewayType());
         config.setGatewayCode(request.getGatewayCode());
@@ -116,7 +159,8 @@ public class ApiRecordConfigController {
         config.setFilterConfig(request.getFilterConfig());
         config.setReferenceResourceConfig(request.getReferenceResourceConfig());
         
-        return ResponseEntity.ok(apiRecordConfigService.update(request.getVersionId(), config));
+        return ResponseEntity.ok(ApiRecordResponse.fromBO(
+            apiRecordConfigService.update(request.getVersionId(), config)));
     }
 
     /**
@@ -124,8 +168,9 @@ public class ApiRecordConfigController {
      */
     @GetMapping("/get")
     @Operation(summary = "获取指定版本的配置")
-    public ResponseEntity<ApiRecordConfigBO> getConfig(@RequestParam String versionId) {
-        return ResponseEntity.ok(apiRecordConfigService.findByVersionId(versionId));
+    public ResponseEntity<ApiRecordResponse> getConfig(@RequestParam String versionId) {
+        return ResponseEntity.ok(ApiRecordResponse.fromBO(
+            apiRecordConfigService.findByVersionId(versionId)));
     }
 
     /**
@@ -133,8 +178,12 @@ public class ApiRecordConfigController {
      */
     @GetMapping("/published")
     @Operation(summary = "获取所有已发布的配置")
-    public ResponseEntity<List<ApiRecordConfigBO>> getAllPublished() {
-        return ResponseEntity.ok(apiRecordConfigService.getAllPublished());
+    public ResponseEntity<List<ApiRecordResponse>> getAllPublished() {
+        return ResponseEntity.ok(
+            apiRecordConfigService.getAllPublished().stream()
+                .map(ApiRecordResponse::fromBO)
+                .collect(Collectors.toList())
+        );
     }
 
     /**
@@ -142,22 +191,7 @@ public class ApiRecordConfigController {
      */
     @PostMapping("/published/by-api")
     @Operation(summary = "获取指定API的所有已发布配置")
-    public ResponseEntity<List<ApiRecordConfigBO>> getPublishedByApi(@RequestBody GetByApiRequest request) {
-        String identifier = String.format("%s:%s:%s:%s",
-            request.getGatewayType(),
-            request.getGatewayCode(),
-            request.getApiVersion(),
-            request.getApiName()
-        );
-        return ResponseEntity.ok(apiRecordConfigService.getPublishedByIdentifier(identifier));
-    }
-
-    /**
-     * 获取指定API在指定地域生效的配置
-     */
-    @PostMapping("/active")
-    @Operation(summary = "获取指定API在指定地域生效的配置")
-    public ResponseEntity<ApiRecordConfigBO> getActiveConfig(@RequestBody GetActiveRequest request) {
+    public ResponseEntity<List<ApiRecordResponse>> getPublishedByApi(@RequestBody GetByApiRequest request) {
         String identifier = String.format("%s:%s:%s:%s",
             request.getGatewayType(),
             request.getGatewayCode(),
@@ -165,8 +199,27 @@ public class ApiRecordConfigController {
             request.getApiName()
         );
         return ResponseEntity.ok(
-            apiRecordConfigService.getActiveByIdentifierAndRegion(identifier, request.getRegion())
+            apiRecordConfigService.getPublishedByIdentifier(identifier).stream()
+                .map(ApiRecordResponse::fromBO)
+                .collect(Collectors.toList())
         );
+    }
+
+    /**
+     * 获取指定API在指定地域生效的配置
+     */
+    @PostMapping("/active")
+    @Operation(summary = "获取指定API在指定地域生效的配置")
+    public ResponseEntity<ApiRecordResponse> getActiveConfig(@RequestBody GetActiveRequest request) {
+        String identifier = String.format("%s:%s:%s:%s",
+            request.getGatewayType(),
+            request.getGatewayCode(),
+            request.getApiVersion(),
+            request.getApiName()
+        );
+        return ResponseEntity.ok(ApiRecordResponse.fromBO(
+            apiRecordConfigService.getActiveByIdentifierAndRegion(identifier, request.getRegion())
+        ));
     }
 
     /**
@@ -174,8 +227,12 @@ public class ApiRecordConfigController {
      */
     @GetMapping("/active/by-region")
     @Operation(summary = "获取指定地域生效的所有配置")
-    public ResponseEntity<List<ApiRecordConfigBO>> getActiveByRegion(@RequestParam String region) {
-        return ResponseEntity.ok(apiRecordConfigService.getActiveByRegion(region));
+    public ResponseEntity<List<ApiRecordResponse>> getActiveByRegion(@RequestParam String region) {
+        return ResponseEntity.ok(
+            apiRecordConfigService.getActiveByRegion(region).stream()
+                .map(ApiRecordResponse::fromBO)
+                .collect(Collectors.toList())
+        );
     }
 
     /**
@@ -184,6 +241,8 @@ public class ApiRecordConfigController {
     @PostMapping("/diff")
     @Operation(summary = "获取配置变更信息")
     public ResponseEntity<List<String>> getConfigDiff(@RequestBody DiffRequest request) {
-        return ResponseEntity.ok(apiRecordConfigService.getVersionDiff(request.getVersionIds(), request.getRegion()));
+        return ResponseEntity.ok(
+            apiRecordConfigService.getVersionDiff(request.getVersionIds(), request.getRegion())
+        );
     }
 }
