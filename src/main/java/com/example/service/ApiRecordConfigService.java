@@ -135,31 +135,31 @@ public class ApiRecordConfigService implements BaseConfigService<ApiRecordConfig
     }
 
     /**
-     * 获取配置变更信息
+     * 获取配置差异信息
+     * 比较客户端版本与服务端版本的差异，返回需要更新的配置
      */
-    public ConfigDiffResponse<ApiRecordConfigBO> getConfigDiff(ConfigDiffRequest request) {
-        String stage = regionProvider.getStageByRegion(request.getRegion());
+    public ConfigDiffResponse<ApiRecordConfigBO> getConfigDiff(List<String> clientVersionIds, String region) {
+        // 获取该地域当前生效的所有配置
+        List<ApiRecordConfigBO> activeConfigs = getActiveByRegion(region);
         
-        // 获取当前所有生效的配置
-        List<ApiRecordConfig> currentConfigs = apiRecordConfigMapper.findByStage(stage);
-        
-        // 找出新增或更新的配置
-        Set<String> oldVersions = new HashSet<>(request.getVersionIds());
-        List<ApiRecordConfig> updatedConfigs = currentConfigs.stream()
-            .filter(config -> !oldVersions.contains(config.getVersionId()))
+        // 当前生效的版本号列表
+        List<String> activeVersionIds = activeConfigs.stream()
+            .map(ApiRecordConfigBO::getVersionId)
             .collect(Collectors.toList());
-        
-        // 找出已失效的版本
-        List<String> deprecatedVersionIds = request.getVersionIds().stream()
-            .filter(versionId -> currentConfigs.stream()
-                .noneMatch(config -> config.getVersionId().equals(versionId)))
+            
+        // 客户端需要更新的配置（新增或更新的）
+        List<ApiRecordConfigBO> updatedConfigs = activeConfigs.stream()
+            .filter(config -> !clientVersionIds.contains(config.getVersionId()))
             .collect(Collectors.toList());
-        
-        // 构建响应
+            
+        // 已失效的版本号（客户端持有但服务端已不存在的）
+        List<String> deprecatedVersionIds = clientVersionIds.stream()
+            .filter(versionId -> !activeVersionIds.contains(versionId))
+            .collect(Collectors.toList());
+            
         return ConfigDiffResponse.<ApiRecordConfigBO>builder()
-            .updatedConfigs(updatedConfigs.stream()
-                .map(ApiRecordConfigBO::fromDO)
-                .collect(Collectors.toList()))
+            .updatedConfigs(updatedConfigs)
+            .activeVersionIds(activeVersionIds)
             .deprecatedVersionIds(deprecatedVersionIds)
             .build();
     }

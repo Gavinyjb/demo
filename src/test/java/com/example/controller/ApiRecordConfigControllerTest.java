@@ -1,5 +1,6 @@
 package com.example.controller;
 
+import com.example.dto.ConfigDiffRequest;
 import com.example.enums.ConfigStatus;
 import com.example.enums.GrayStage;
 import com.example.model.bo.ApiRecordConfigBO;
@@ -13,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import java.util.Arrays;
+import java.util.Collections;
 
 @SpringBootTest
 @Transactional
@@ -155,19 +157,19 @@ class ApiRecordConfigControllerTest {
         publishService.publishByStage(config3.getVersionId(), "API_RECORD", GrayStage.FULL, "test-user");
 
         // 4. 测试配置差异对比 - 客户端没有任何配置
-        ApiRecordConfigController.ConfigDiffRequest diffRequest = new ApiRecordConfigController.ConfigDiffRequest();
-        diffRequest.setVersionIds(Arrays.asList());
+        ConfigDiffRequest diffRequest = new ConfigDiffRequest();
+        diffRequest.setVersionIds(Collections.emptyList());
         diffRequest.setRegion("ap-southeast-1");
 
-        ApiRecordConfigController.ConfigDiffResponse diffResponse1 = controller.getConfigDiff(diffRequest).getBody();
+        ApiRecordConfigController.ApiRecordDiffResponse diffResponse1 = controller.getConfigDiff(diffRequest).getBody();
         assertNotNull(diffResponse1);
         assertEquals(2, diffResponse1.getUpdatedConfigs().size());  // 应该返回两个活跃配置
         assertEquals(2, diffResponse1.getActiveVersionIds().size());
         assertTrue(diffResponse1.getDeprecatedVersionIds().isEmpty());
 
         // 5. 测试配置差异对比 - 客户端持有旧版本
-        diffRequest.setVersionIds(Arrays.asList(config1.getVersionId()));
-        ApiRecordConfigController.ConfigDiffResponse diffResponse2 = controller.getConfigDiff(diffRequest).getBody();
+        diffRequest.setVersionIds(Collections.singletonList(config1.getVersionId()));
+        ApiRecordConfigController.ApiRecordDiffResponse diffResponse2 = controller.getConfigDiff(diffRequest).getBody();
         assertNotNull(diffResponse2);
         assertEquals(2, diffResponse2.getUpdatedConfigs().size());  // 应该返回新版本和另一个API的配置
         assertEquals(2, diffResponse2.getActiveVersionIds().size());
@@ -176,15 +178,15 @@ class ApiRecordConfigControllerTest {
 
         // 6. 测试配置差异对比 - 客户端持有最新版本
         diffRequest.setVersionIds(Arrays.asList(config2.getVersionId(), config3.getVersionId()));
-        ApiRecordConfigController.ConfigDiffResponse diffResponse3 = controller.getConfigDiff(diffRequest).getBody();
+        ApiRecordConfigController.ApiRecordDiffResponse diffResponse3 = controller.getConfigDiff(diffRequest).getBody();
         assertNotNull(diffResponse3);
         assertTrue(diffResponse3.getUpdatedConfigs().isEmpty());  // 不应该有需要更新的配置
         assertEquals(2, diffResponse3.getActiveVersionIds().size());
         assertTrue(diffResponse3.getDeprecatedVersionIds().isEmpty());
 
         // 7. 测试配置差异对比 - 客户端持有不存在的版本
-        diffRequest.setVersionIds(Arrays.asList("non-existent-version"));
-        ApiRecordConfigController.ConfigDiffResponse diffResponse4 = controller.getConfigDiff(diffRequest).getBody();
+        diffRequest.setVersionIds(Collections.singletonList("non-existent-version"));
+        ApiRecordConfigController.ApiRecordDiffResponse diffResponse4 = controller.getConfigDiff(diffRequest).getBody();
         assertNotNull(diffResponse4);
         assertEquals(2, diffResponse4.getUpdatedConfigs().size());  // 应该返回所有活跃配置
         assertEquals(2, diffResponse4.getActiveVersionIds().size());

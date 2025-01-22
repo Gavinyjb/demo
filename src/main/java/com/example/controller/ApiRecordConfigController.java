@@ -1,11 +1,15 @@
 package com.example.controller;
 
+import com.example.dto.ConfigDiffRequest;
+import com.example.dto.ConfigDiffResponse;
 import com.example.model.bo.ApiRecordConfigBO;
 import com.example.service.ApiRecordConfigService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.Data;
+import lombok.Builder;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -71,19 +75,6 @@ public class ApiRecordConfigController {
     }
 
     @Data
-    public static class ConfigDiffRequest {
-        private List<String> versionIds;  // 客户端当前持有的版本号列表
-        private String region;            // 查询的地域
-    }
-
-    @Data
-    public static class ConfigDiffResponse {
-        private List<ApiRecordResponse> updatedConfigs;  // 新增或更新的配置
-        private List<String> activeVersionIds;           // 当前生效的所有版本号
-        private List<String> deprecatedVersionIds;       // 已失效的版本号
-    }
-
-    @Data
     public static class ApiRecordResponse {
         private String versionId;
         private String gatewayType;
@@ -106,21 +97,7 @@ public class ApiRecordConfigController {
                 return null;
             }
             ApiRecordResponse response = new ApiRecordResponse();
-            response.setVersionId(bo.getVersionId());
-            response.setGatewayType(bo.getGatewayType());
-            response.setGatewayCode(bo.getGatewayCode());
-            response.setApiVersion(bo.getApiVersion());
-            response.setApiName(bo.getApiName());
-            response.setBasicConfig(bo.getBasicConfig());
-            response.setEventConfig(bo.getEventConfig());
-            response.setUserIdentityConfig(bo.getUserIdentityConfig());
-            response.setRequestConfig(bo.getRequestConfig());
-            response.setResponseConfig(bo.getResponseConfig());
-            response.setFilterConfig(bo.getFilterConfig());
-            response.setReferenceResourceConfig(bo.getReferenceResourceConfig());
-            response.setConfigStatus(bo.getConfigStatus());
-            response.setGmtCreate(bo.getGmtCreate() != null ? bo.getGmtCreate().toString() : null);
-            response.setGmtModified(bo.getGmtModified() != null ? bo.getGmtModified().toString() : null);
+            BeanUtils.copyProperties(bo, response);
             return response;
         }
     }
@@ -132,6 +109,14 @@ public class ApiRecordConfigController {
         private String apiVersion;
         private String apiName;
         private String versionId;  // 可选，指定要删除的版本
+    }
+
+    @Data
+    @Builder
+    public static class ApiRecordDiffResponse {
+        private List<ApiRecordResponse> updatedConfigs;  // 新增或更新的配置
+        private List<String> activeVersionIds;           // 当前生效的版本号
+        private List<String> deprecatedVersionIds;       // 已失效的版本号
     }
 
     /**
@@ -253,37 +238,22 @@ public class ApiRecordConfigController {
 
     /**
      * 获取配置变更信息
-     * 用于客户端增量更新配置
      */
     @PostMapping("/diff")
     @Operation(summary = "获取配置变更信息", description = "比较客户端版本与服务端版本的差异，返回需要更新的配置")
-    public ResponseEntity<ConfigDiffResponse> getConfigDiff(@RequestBody ConfigDiffRequest request) {
-        // 获取该地域当前生效的所有配置
-        List<ApiRecordConfigBO> activeConfigs = apiRecordConfigService.getActiveByRegion(request.getRegion());
+    public ResponseEntity<ApiRecordDiffResponse> getConfigDiff(@RequestBody ConfigDiffRequest request) {
+        ConfigDiffResponse<ApiRecordConfigBO> boResponse = apiRecordConfigService.getConfigDiff(
+            request.getVersionIds(),
+            request.getRegion()
+        );
         
-        // 当前生效的版本号列表
-        List<String> activeVersionIds = activeConfigs.stream()
-            .map(ApiRecordConfigBO::getVersionId)
-            .collect(Collectors.toList());
-            
-        // 客户端需要更新的配置（新增或更新的）
-        List<ApiRecordConfigBO> updatedConfigs = activeConfigs.stream()
-            .filter(config -> !request.getVersionIds().contains(config.getVersionId()))
-            .collect(Collectors.toList());
-            
-        // 已失效的版本号（客户端持有但服务端已不存在的）
-        List<String> deprecatedVersionIds = request.getVersionIds().stream()
-            .filter(versionId -> !activeVersionIds.contains(versionId))
-            .collect(Collectors.toList());
-            
-        ConfigDiffResponse response = new ConfigDiffResponse();
-        response.setUpdatedConfigs(updatedConfigs.stream()
-            .map(ApiRecordResponse::fromBO)
-            .collect(Collectors.toList()));
-        response.setActiveVersionIds(activeVersionIds);
-        response.setDeprecatedVersionIds(deprecatedVersionIds);
-        
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(ApiRecordDiffResponse.builder()
+            .updatedConfigs(boResponse.getUpdatedConfigs().stream()
+                .map(ApiRecordResponse::fromBO)
+                .collect(Collectors.toList()))
+            .activeVersionIds(boResponse.getActiveVersionIds())
+            .deprecatedVersionIds(boResponse.getDeprecatedVersionIds())
+            .build());
     }
 
     /**

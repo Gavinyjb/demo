@@ -18,4 +18,10 @@ public class ConfigDiffResponse<T extends BaseVersionedConfig> {
      * 已失效的配置版本ID列表
      */
     private List<String> deprecatedVersionIds;
+
+    
+    /**
+     * 当前生效的配置版本ID列表
+     */
+    private List<String> activeVersionIds;
 } 
