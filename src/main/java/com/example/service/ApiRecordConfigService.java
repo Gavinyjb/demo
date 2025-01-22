@@ -17,6 +17,7 @@ import java.util.HashSet;
 import java.util.stream.Collectors;
 import com.example.exception.ConfigNotFoundException;
 import lombok.extern.slf4j.Slf4j;
+import java.util.Arrays;
 
 /**
  * API记录配置服务
@@ -171,5 +172,36 @@ public class ApiRecordConfigService implements BaseConfigService<ApiRecordConfig
     @Override
     public int getMaxDeprecatedVersions() {
         return 8;
+    }
+
+    /**
+     * 删除指定版本ID的配置（仅删除草稿或废弃状态）
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public void deleteByVersionIdWithStatusCheck(String versionId) {
+        // 先查询配置状态
+        ApiRecordConfigBO config = findByVersionId(versionId);
+        if (config == null) {
+            throw new ConfigNotFoundException("Config not found: " + versionId);
+        }
+        
+        // 检查配置状态
+        if (ConfigStatus.PUBLISHED.name().equals(config.getConfigStatus()) || 
+            ConfigStatus.GRAYING.name().equals(config.getConfigStatus())) {
+            throw new RuntimeException("Cannot delete published or graying config: " + versionId);
+        }
+
+        apiRecordConfigMapper.deleteByVersionIdAndStatusIn(versionId, 
+            Arrays.asList(ConfigStatus.DRAFT.name(), ConfigStatus.DEPRECATED.name()));
+    }
+
+    /**
+     * 删除指定标识的配置（仅删除草稿或废弃状态）
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public void deleteByIdentifierWithStatusCheck(String identifier) {
+        // 不需要额外检查，因为SQL中已经限制了只删除草稿和废弃状态的配置
+        apiRecordConfigMapper.deleteByIdentifierAndStatusIn(identifier,
+            Arrays.asList(ConfigStatus.DRAFT.name(), ConfigStatus.DEPRECATED.name()));
     }
 } 

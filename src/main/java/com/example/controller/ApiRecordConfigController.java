@@ -71,9 +71,16 @@ public class ApiRecordConfigController {
     }
 
     @Data
-    public static class DiffRequest {
-        private List<String> versionIds;
-        private String region;
+    public static class ConfigDiffRequest {
+        private List<String> versionIds;  // 客户端当前持有的版本号列表
+        private String region;            // 查询的地域
+    }
+
+    @Data
+    public static class ConfigDiffResponse {
+        private List<ApiRecordResponse> updatedConfigs;  // 新增或更新的配置
+        private List<String> activeVersionIds;           // 当前生效的所有版本号
+        private List<String> deprecatedVersionIds;       // 已失效的版本号
     }
 
     @Data
@@ -116,6 +123,15 @@ public class ApiRecordConfigController {
             response.setGmtModified(bo.getGmtModified() != null ? bo.getGmtModified().toString() : null);
             return response;
         }
+    }
+
+    @Data
+    public static class DeleteRequest {
+        private String gatewayType;
+        private String gatewayCode;
+        private String apiVersion;
+        private String apiName;
+        private String versionId;  // 可选，指定要删除的版本
     }
 
     /**
@@ -237,12 +253,56 @@ public class ApiRecordConfigController {
 
     /**
      * 获取配置变更信息
+     * 用于客户端增量更新配置
      */
     @PostMapping("/diff")
-    @Operation(summary = "获取配置变更信息")
-    public ResponseEntity<List<String>> getConfigDiff(@RequestBody DiffRequest request) {
-        return ResponseEntity.ok(
-            apiRecordConfigService.getVersionDiff(request.getVersionIds(), request.getRegion())
-        );
+    @Operation(summary = "获取配置变更信息", description = "比较客户端版本与服务端版本的差异，返回需要更新的配置")
+    public ResponseEntity<ConfigDiffResponse> getConfigDiff(@RequestBody ConfigDiffRequest request) {
+        // 获取该地域当前生效的所有配置
+        List<ApiRecordConfigBO> activeConfigs = apiRecordConfigService.getActiveByRegion(request.getRegion());
+        
+        // 当前生效的版本号列表
+        List<String> activeVersionIds = activeConfigs.stream()
+            .map(ApiRecordConfigBO::getVersionId)
+            .collect(Collectors.toList());
+            
+        // 客户端需要更新的配置（新增或更新的）
+        List<ApiRecordConfigBO> updatedConfigs = activeConfigs.stream()
+            .filter(config -> !request.getVersionIds().contains(config.getVersionId()))
+            .collect(Collectors.toList());
+            
+        // 已失效的版本号（客户端持有但服务端已不存在的）
+        List<String> deprecatedVersionIds = request.getVersionIds().stream()
+            .filter(versionId -> !activeVersionIds.contains(versionId))
+            .collect(Collectors.toList());
+            
+        ConfigDiffResponse response = new ConfigDiffResponse();
+        response.setUpdatedConfigs(updatedConfigs.stream()
+            .map(ApiRecordResponse::fromBO)
+            .collect(Collectors.toList()));
+        response.setActiveVersionIds(activeVersionIds);
+        response.setDeprecatedVersionIds(deprecatedVersionIds);
+        
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * 删除配置（仅支持删除草稿和废弃状态的配置）
+     */
+    @PostMapping("/delete")
+    @Operation(summary = "删除配置（仅支持删除草稿和废弃状态的配置）")
+    public ResponseEntity<Void> delete(@RequestBody DeleteRequest request) {
+        if (request.getVersionId() != null) {
+            apiRecordConfigService.deleteByVersionIdWithStatusCheck(request.getVersionId());
+        } else {
+            String identifier = String.format("%s:%s:%s:%s",
+                request.getGatewayType(),
+                request.getGatewayCode(),
+                request.getApiVersion(),
+                request.getApiName()
+            );
+            apiRecordConfigService.deleteByIdentifierWithStatusCheck(identifier);
+        }
+        return ResponseEntity.ok().build();
     }
 }

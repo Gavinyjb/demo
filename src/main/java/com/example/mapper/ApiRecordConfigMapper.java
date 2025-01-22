@@ -136,4 +136,42 @@ public interface ApiRecordConfigMapper {
         @Param("identifier") String identifier,
         @Param("stage") String stage
     );
+
+    /**
+     * 按版本ID和状态列表删除配置
+     */
+    @Delete({
+        "<script>",
+        "DELETE c, v FROM api_record_config c ",
+        "LEFT JOIN config_version v ON c.version_id = v.version_id ",
+        "WHERE c.version_id = #{versionId} ",
+        "AND v.config_status IN ",
+        "<foreach collection='statusList' item='status' open='(' separator=',' close=')'>",
+        "#{status}",
+        "</foreach>",
+        "</script>"
+    })
+    void deleteByVersionIdAndStatusIn(
+        @Param("versionId") String versionId,
+        @Param("statusList") List<String> statusList
+    );
+
+    /**
+     * 按标识和状态列表删除配置
+     */
+    @Delete({
+        "<script>",
+        "DELETE c, v FROM api_record_config c ",
+        "LEFT JOIN config_version v ON c.version_id = v.version_id ",
+        "WHERE v.identifier = #{identifier} ",
+        "AND v.config_status IN ",
+        "<foreach collection='statusList' item='status' open='(' separator=',' close=')'>",
+        "#{status}",
+        "</foreach>",
+        "</script>"
+    })
+    void deleteByIdentifierAndStatusIn(
+        @Param("identifier") String identifier,
+        @Param("statusList") List<String> statusList
+    );
 } 

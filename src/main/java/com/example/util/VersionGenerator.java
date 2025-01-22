@@ -33,7 +33,16 @@ public class VersionGenerator {
      * 示例：API202401211545230019999
      */
     public String generateApiMetaVersion() {
-        return "API" + generateVersionSuffix();
+        return "AM" + generateVersionSuffix();
+    }
+
+    /**
+     * 生成API记录配置版本号
+     * 格式：AR + 时间戳(14位) + 随机数(3位) + 序列号(4位)
+     * 示例：AR202401211545230019999
+     */
+    public String generateApiRecordVersion() {
+        return "AR" + generateVersionSuffix();
     }
 
     /**
