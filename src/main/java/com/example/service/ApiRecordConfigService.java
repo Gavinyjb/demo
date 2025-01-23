@@ -204,4 +204,24 @@ public class ApiRecordConfigService implements BaseConfigService<ApiRecordConfig
         apiRecordConfigMapper.deleteByIdentifierAndStatusIn(identifier,
             Arrays.asList(ConfigStatus.DRAFT.name(), ConfigStatus.DEPRECATED.name()));
     }
+
+    /**
+     * 按状态查询配置
+     */
+    public List<ApiRecordConfigBO> findByStatus(List<String> statusList) {
+        List<ApiRecordConfig> configs = apiRecordConfigMapper.findByStatus(statusList);
+        return configs.stream()
+            .map(ApiRecordConfigBO::fromDO)
+            .collect(Collectors.toList());
+    }
+
+    /**
+     * 按标识和状态查询配置
+     */
+    public List<ApiRecordConfigBO> findByIdentifierAndStatus(String identifier, List<String> statusList) {
+        List<ApiRecordConfig> configs = apiRecordConfigMapper.findByIdentifierAndStatus(identifier, statusList);
+        return configs.stream()
+            .map(ApiRecordConfigBO::fromDO)
+            .collect(Collectors.toList());
+    }
 } 

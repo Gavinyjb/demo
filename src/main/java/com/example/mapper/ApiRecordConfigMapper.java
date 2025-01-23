@@ -174,4 +174,42 @@ public interface ApiRecordConfigMapper {
         @Param("identifier") String identifier,
         @Param("statusList") List<String> statusList
     );
+
+    @Select({
+        "<script>",
+        "SELECT c.id, c.version_id, c.gateway_type, c.gateway_code, ",
+        "c.api_version, c.api_name, c.basic_config, c.event_config, ",
+        "c.user_identity_config, c.request_config, c.response_config, ",
+        "c.filter_config, c.reference_resource_config, ",
+        "c.gmt_create, c.gmt_modified, v.config_status ",
+        "FROM api_record_config c ",
+        "INNER JOIN config_version v ON c.version_id = v.version_id ",
+        "WHERE v.config_status IN ",
+        "<foreach collection='statusList' item='status' open='(' separator=',' close=')'>",
+        "#{status}",
+        "</foreach>",
+        "</script>"
+    })
+    List<ApiRecordConfig> findByStatus(@Param("statusList") List<String> statusList);
+
+    @Select({
+        "<script>",
+        "SELECT c.id, c.version_id, c.gateway_type, c.gateway_code, ",
+        "c.api_version, c.api_name, c.basic_config, c.event_config, ",
+        "c.user_identity_config, c.request_config, c.response_config, ",
+        "c.filter_config, c.reference_resource_config, ",
+        "c.gmt_create, c.gmt_modified, v.config_status ",
+        "FROM api_record_config c ",
+        "INNER JOIN config_version v ON c.version_id = v.version_id ",
+        "WHERE v.identifier = #{identifier} ",
+        "AND v.config_status IN ",
+        "<foreach collection='statusList' item='status' open='(' separator=',' close=')'>",
+        "#{status}",
+        "</foreach>",
+        "</script>"
+    })
+    List<ApiRecordConfig> findByIdentifierAndStatus(
+        @Param("identifier") String identifier,
+        @Param("statusList") List<String> statusList
+    );
 } 
