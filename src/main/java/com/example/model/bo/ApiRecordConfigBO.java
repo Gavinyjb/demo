@@ -7,12 +7,13 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import org.springframework.beans.BeanUtils;
 
+import java.time.LocalDateTime;
+
 @Data
 @EqualsAndHashCode(callSuper = true)
 public class ApiRecordConfigBO extends ApiRecordConfig {
 
     private BasicConfig basicConfigObject;
-
 
     public static ApiRecordConfigBO fromDO(ApiRecordConfig apiRecordConfig) {
         if (apiRecordConfig == null) {
@@ -20,14 +21,22 @@ public class ApiRecordConfigBO extends ApiRecordConfig {
         }
         
         ApiRecordConfigBO bo = new ApiRecordConfigBO();
-        BeanUtils.copyProperties(apiRecordConfig, bo);
+        BeanUtils.copyProperties(apiRecordConfig, bo, "gmtCreate", "gmtModified");
+        
+        bo.setGmtCreate(apiRecordConfig.getGmtCreate());
+        bo.setGmtModified(apiRecordConfig.getGmtModified());
+        
         bo.setBasicConfigObject(JsonUtils.parseObject(apiRecordConfig.getBasicConfig(), BasicConfig.class));
         return bo;
     }
 
     public ApiRecordConfig toDO() {
         ApiRecordConfig entity = new ApiRecordConfig();
-        BeanUtils.copyProperties(this, entity);
+        BeanUtils.copyProperties(this, entity, "gmtCreate", "gmtModified");
+        
+        entity.setGmtCreate(this.getGmtCreate() != null ? this.getGmtCreate() : LocalDateTime.now());
+        entity.setGmtModified(this.getGmtModified() != null ? this.getGmtModified() : LocalDateTime.now());
+        
         entity.setBasicConfig(JsonUtils.toJsonString(this.getBasicConfigObject()));
         return entity;
     }
