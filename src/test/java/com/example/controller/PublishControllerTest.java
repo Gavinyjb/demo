@@ -101,12 +101,14 @@ class PublishControllerTest {
         // 验证所有灰度阶段都存在
         assertTrue(stages.containsKey(GrayStage.STAGE_1.name()));
         assertTrue(stages.containsKey(GrayStage.STAGE_2.name()));
+        assertTrue(stages.containsKey(GrayStage.STAGE_3.name()));
         assertTrue(stages.containsKey(GrayStage.FULL.name()));
         
         // 验证地域信息
-        assertTrue(stages.get(GrayStage.STAGE_1.name()).contains("ap-southeast-2"));
-        assertTrue(stages.get(GrayStage.STAGE_2.name()).contains("cn-chengdu"));
-        assertTrue(stages.get(GrayStage.FULL.name()).contains("cn-hangzhou"));
+        assertTrue(stages.get(GrayStage.STAGE_1.name()).contains("ap-southeast-3")); // 马来西亚
+        assertTrue(stages.get(GrayStage.STAGE_2.name()).contains("cn-chengdu"));    // 成都
+        assertTrue(stages.get(GrayStage.STAGE_3.name()).contains("ap-northeast-1")); // 日本
+        assertTrue(stages.get(GrayStage.FULL.name()).contains("cn-hangzhou"));      // 杭州(核心地域)
     }
 
     @Test

@@ -12,6 +12,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import java.util.Arrays;
+import java.util.List;
+
 @SpringBootTest
 @Transactional
 @Slf4j
@@ -239,6 +242,163 @@ public class ApiRecordConfigServiceTest {
         ApiRecordConfigBO rolledBackConfig = apiRecordConfigService.findByVersionId(updated.getVersionId());
         assertEquals(ConfigStatus.DEPRECATED.name(), rolledBackConfig.getConfigStatus());
     }
+//
+//    @Test
+//    void testGetActiveByRegion() {
+//        // 1. 创建并发布第一个配置到阶段1
+//        ApiRecordConfigBO config1 = createTestConfig("test-api-1");
+//        ApiRecordConfigBO created1 = apiRecordConfigService.create(config1);
+//        publishService.publishByStage(created1.getVersionId(), "API_RECORD", GrayStage.STAGE_1, "test-user");
+//
+//        // 2. 创建并发布第二个配置到阶段2
+//        ApiRecordConfigBO config2 = createTestConfig("test-api-2");
+//        ApiRecordConfigBO created2 = apiRecordConfigService.create(config2);
+//        publishService.publishByStage(created2.getVersionId(), "API_RECORD", GrayStage.STAGE_2, "test-user");
+//
+//        // 3. 创建并发布第三个配置到阶段3
+//        ApiRecordConfigBO config3 = createTestConfig("test-api-3");
+//        ApiRecordConfigBO created3 = apiRecordConfigService.create(config3);
+//        publishService.publishByStage(created3.getVersionId(), "API_RECORD", GrayStage.STAGE_3, "test-user");
+//
+//        // 4. 验证阶段1地域(马来西亚)可以看到所有配置
+//        List<ApiRecordConfigBO> stage1Configs = apiRecordConfigService.getActiveByRegion("ap-southeast-3");
+//        assertEquals(3, stage1Configs.size());
+//        assertTrue(stage1Configs.stream().anyMatch(c -> c.getVersionId().equals(created1.getVersionId())));
+//        assertTrue(stage1Configs.stream().anyMatch(c -> c.getVersionId().equals(created2.getVersionId())));
+//        assertTrue(stage1Configs.stream().anyMatch(c -> c.getVersionId().equals(created3.getVersionId())));
+//
+//        // 5. 验证阶段2地域(成都)可以看到阶段2和阶段1的配置
+//        List<ApiRecordConfigBO> stage2Configs = apiRecordConfigService.getActiveByRegion("cn-chengdu");
+//        assertEquals(2, stage2Configs.size());
+//        assertTrue(stage2Configs.stream().anyMatch(c -> c.getVersionId().equals(created2.getVersionId())));
+//        assertTrue(stage2Configs.stream().anyMatch(c -> c.getVersionId().equals(created3.getVersionId())));
+//
+//        // 6. 验证阶段3地域(日本)只能看到阶段3的配置
+//        List<ApiRecordConfigBO> stage3Configs = apiRecordConfigService.getActiveByRegion("ap-northeast-1");
+//        assertEquals(1, stage3Configs.size());
+//        assertEquals(created3.getVersionId(), stage3Configs.get(0).getVersionId());
+//
+//        // 7. 创建并发布第四个配置到全量
+//        ApiRecordConfigBO config4 = createTestConfig("test-api-4");
+//        ApiRecordConfigBO created4 = apiRecordConfigService.create(config4);
+//        publishService.publishByStage(created4.getVersionId(), "API_RECORD", GrayStage.FULL, "test-user");
+//
+//        // 8. 验证所有地域都可以看到全量配置
+//        List<ApiRecordConfigBO> stage1ConfigsAfterFull = apiRecordConfigService.getActiveByRegion("ap-southeast-3");
+//        assertTrue(stage1ConfigsAfterFull.stream().anyMatch(c -> c.getVersionId().equals(created4.getVersionId())));
+//
+//        List<ApiRecordConfigBO> stage2ConfigsAfterFull = apiRecordConfigService.getActiveByRegion("cn-chengdu");
+//        assertTrue(stage2ConfigsAfterFull.stream().anyMatch(c -> c.getVersionId().equals(created4.getVersionId())));
+//
+//        List<ApiRecordConfigBO> stage3ConfigsAfterFull = apiRecordConfigService.getActiveByRegion("ap-northeast-1");
+//        assertTrue(stage3ConfigsAfterFull.stream().anyMatch(c -> c.getVersionId().equals(created4.getVersionId())));
+//
+//        List<ApiRecordConfigBO> hangzhouConfigs = apiRecordConfigService.getActiveByRegion("cn-hangzhou");
+//        assertTrue(hangzhouConfigs.stream().anyMatch(c -> c.getVersionId().equals(created4.getVersionId())));
+//    }
+//
+//    @Test
+//    void testGetActiveByIdentifierAndRegion() {
+//        // 1. 创建并发布配置到阶段1
+//        ApiRecordConfigBO config = createTestConfig("test-api");
+//        ApiRecordConfigBO created = apiRecordConfigService.create(config);
+//        publishService.publishByStage(created.getVersionId(), "API_RECORD", GrayStage.STAGE_1, "test-user");
+//
+//        // 2. 验证阶段1地域(马来西亚)可以看到配置
+//        ApiRecordConfigBO stage1Config = apiRecordConfigService.getActiveByIdentifierAndRegion(
+//            created.getIdentifier(),
+//            "ap-southeast-3"
+//        );
+//        assertNotNull(stage1Config);
+//        assertEquals(created.getVersionId(), stage1Config.getVersionId());
+//
+//        // 3. 验证阶段2地域(成都)看不到阶段1的配置
+//        ApiRecordConfigBO stage2Config = apiRecordConfigService.getActiveByIdentifierAndRegion(
+//            created.getIdentifier(),
+//            "cn-chengdu"
+//        );
+//        assertNull(stage2Config);
+//
+//        // 4. 验证核心地域(杭州)可以看到配置
+//        ApiRecordConfigBO hangzhouConfig = apiRecordConfigService.getActiveByIdentifierAndRegion(
+//            created.getIdentifier(),
+//            "cn-hangzhou"
+//        );
+//        assertNotNull(hangzhouConfig);
+//        assertEquals(created.getVersionId(), hangzhouConfig.getVersionId());
+//    }
+//
+//    @Test
+//    void testGetConfigDiff() {
+//        // 1. 创建并发布第一个配置到阶段1
+//        ApiRecordConfigBO config1 = createTestConfig("test-api-1");
+//        ApiRecordConfigBO created1 = apiRecordConfigService.create(config1);
+//        publishService.publishByStage(created1.getVersionId(), "API_RECORD", GrayStage.STAGE_1, "test-user");
+//
+//        // 2. 创建并发布第二个配置到阶段2
+//        ApiRecordConfigBO config2 = createTestConfig("test-api-2");
+//        ApiRecordConfigBO created2 = apiRecordConfigService.create(config2);
+//        publishService.publishByStage(created2.getVersionId(), "API_RECORD", GrayStage.STAGE_2, "test-user");
+//
+//        // 3. 创建并发布第三个配置到阶段3
+//        ApiRecordConfigBO config3 = createTestConfig("test-api-3");
+//        ApiRecordConfigBO created3 = apiRecordConfigService.create(config3);
+//        publishService.publishByStage(created3.getVersionId(), "API_RECORD", GrayStage.STAGE_3, "test-user");
+//
+//        // 4. 验证阶段1地域(马来西亚)的配置差异
+//        ConfigDiffResponse<ApiRecordConfigBO> stage1Diff = apiRecordConfigService.getConfigDiff(
+//            Arrays.asList(created1.getVersionId()),
+//            "ap-southeast-3"
+//        );
+//        assertEquals(1, stage1Diff.getUpdatedConfigs().size());
+//        assertEquals(1, stage1Diff.getActiveVersionIds().size());
+//        assertTrue(stage1Diff.getActiveVersionIds().contains(created1.getVersionId()));
+//        assertTrue(stage1Diff.getDeprecatedVersionIds().isEmpty());
+//
+//        // 5. 验证阶段2地域(成都)的配置差异
+//        ConfigDiffResponse<ApiRecordConfigBO> stage2Diff = apiRecordConfigService.getConfigDiff(
+//            Arrays.asList(created2.getVersionId()),
+//            "cn-chengdu"
+//        );
+//        assertEquals(1, stage2Diff.getUpdatedConfigs().size());
+//        assertEquals(1, stage2Diff.getActiveVersionIds().size());
+//        assertTrue(stage2Diff.getActiveVersionIds().contains(created2.getVersionId()));
+//        assertTrue(stage2Diff.getDeprecatedVersionIds().isEmpty());
+//
+//        // 6. 验证阶段3地域(日本)的配置差异
+//        ConfigDiffResponse<ApiRecordConfigBO> stage3Diff = apiRecordConfigService.getConfigDiff(
+//            Arrays.asList(created3.getVersionId()),
+//            "ap-northeast-1"
+//        );
+//        assertEquals(1, stage3Diff.getUpdatedConfigs().size());
+//        assertEquals(1, stage3Diff.getActiveVersionIds().size());
+//        assertTrue(stage3Diff.getActiveVersionIds().contains(created3.getVersionId()));
+//        assertTrue(stage3Diff.getDeprecatedVersionIds().isEmpty());
+//
+//        // 7. 验证核心地域(杭州)的配置差异
+//        ConfigDiffResponse<ApiRecordConfigBO> hangzhouDiff = apiRecordConfigService.getConfigDiff(
+//            Arrays.asList(created1.getVersionId(), created2.getVersionId(), created3.getVersionId()),
+//            "cn-hangzhou"
+//        );
+//        assertEquals(3, hangzhouDiff.getUpdatedConfigs().size());
+//        assertEquals(3, hangzhouDiff.getActiveVersionIds().size());
+//        assertTrue(hangzhouDiff.getActiveVersionIds().containsAll(Arrays.asList(
+//            created1.getVersionId(),
+//            created2.getVersionId(),
+//            created3.getVersionId()
+//        )));
+//        assertTrue(hangzhouDiff.getDeprecatedVersionIds().isEmpty());
+//
+//        // 8. 验证使用不存在的版本ID
+//        ConfigDiffResponse<ApiRecordConfigBO> nonExistentDiff = apiRecordConfigService.getConfigDiff(
+//            Arrays.asList("non-existent-version"),
+//            "cn-hangzhou"
+//        );
+//        assertEquals(3, nonExistentDiff.getUpdatedConfigs().size());
+//        assertEquals(3, nonExistentDiff.getActiveVersionIds().size());
+//        assertEquals(1, nonExistentDiff.getDeprecatedVersionIds().size());
+//        assertTrue(nonExistentDiff.getDeprecatedVersionIds().contains("non-existent-version"));
+//    }
     
     private ApiRecordConfigBO createTestConfig(String apiName) {
         ApiRecordConfigBO config = new ApiRecordConfigBO();

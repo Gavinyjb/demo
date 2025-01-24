@@ -158,7 +158,7 @@ class ApiRecordConfigControllerTest {
         // 4. 测试配置差异对比 - 客户端没有任何配置
         ConfigDiffRequest diffRequest = new ConfigDiffRequest();
         diffRequest.setVersionIds(Collections.emptyList());
-        diffRequest.setRegionId("ap-southeast-1");
+        diffRequest.setRegionId("ap-southeast-3");
 
         ApiRecordConfigController.ApiRecordDiffResponse diffResponse1 = controller.getConfigDiff(diffRequest).getData();
         assertNotNull(diffResponse1);

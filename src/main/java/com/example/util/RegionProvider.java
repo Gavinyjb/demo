@@ -5,9 +5,6 @@ import org.springframework.stereotype.Component;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
-import java.util.Map;
-import java.util.HashMap;
-import java.util.stream.Collectors;
 
 /**
  * 地域信息提供器
@@ -15,35 +12,7 @@ import java.util.stream.Collectors;
 @Component
 public class RegionProvider {
     
-    /**
-     * 支持的地域列表
-     */
-    private static final List<String> SUPPORTED_REGIONS = Arrays.asList(
-        "cn-hangzhou",
-        "cn-shanghai",
-        "ap-southeast-1",
-        "cn-chengdu",
-        "ap-southeast-2"
-    );
-    
     private final Random random = new Random();
-
-    /**
-     * 地域与灰度阶段的映射关系
-     */
-    private static final Map<String, String> REGION_STAGE_MAP = new HashMap<>();
-    
-    static {
-        // STAGE_1: ap-southeast-2
-        REGION_STAGE_MAP.put("ap-southeast-2", "STAGE_1");
-        
-        // STAGE_2: cn-chengdu, ap-southeast-2, cn-shanghai
-        REGION_STAGE_MAP.put("cn-chengdu", "STAGE_2");
-        REGION_STAGE_MAP.put("cn-shanghai", "STAGE_2");
-        
-        // 其他地域为全量发布
-        REGION_STAGE_MAP.put("cn-hangzhou", "FULL");
-    }
 
     /**
      * 获取当前应用的地域
@@ -52,7 +21,8 @@ public class RegionProvider {
      * @return 地域标识
      */
     public String getCurrentRegion() {
-        return SUPPORTED_REGIONS.get(random.nextInt(SUPPORTED_REGIONS.size()));
+        List<String> allRegions = GrayStage.FULL.getRegions();
+        return allRegions.get(random.nextInt(allRegions.size()));
     }
 
     /**
@@ -61,38 +31,29 @@ public class RegionProvider {
      * @return 地域列表
      */
     public List<String> getSupportedRegions() {
-        return SUPPORTED_REGIONS;
+        return GrayStage.FULL.getRegions();
     }
 
     /**
      * 获取地域对应的灰度阶段
      */
-    public String getStageByRegion(String region) {
-        return REGION_STAGE_MAP.getOrDefault(region, "FULL");
-    }
+    public String getStageByRegion(String regionId) {
 
-    /**
-     * 获取灰度阶段包含的地域列表
-     */
-    public List<String> getRegionsByStage(String stage) {
-        return REGION_STAGE_MAP.entrySet().stream()
-            .filter(e -> e.getValue().equals(stage))
-            .map(Map.Entry::getKey)
-            .collect(Collectors.toList());
-    }
-
-    /**
-     * 检查地域是否支持
-     */
-    public boolean isRegionSupported(String region) {
-        return SUPPORTED_REGIONS.contains(region);
-    }
-
-    public Map<String, List<String>> getStageRegionMapping() {
-        Map<String, List<String>> mapping = new HashMap<>();
-        for (GrayStage stage : GrayStage.values()) {
-            mapping.put(stage.name(), stage.getRegions());
+        // 按照灰度阶段从低到高匹配
+        if (GrayStage.STAGE_1.getRegions().contains(regionId)) {
+            return GrayStage.STAGE_1.name();
         }
-        return mapping;
+
+        if (GrayStage.STAGE_2.getRegions().contains(regionId)) {
+            return GrayStage.STAGE_2.name();
+        }
+
+        if (GrayStage.STAGE_3.getRegions().contains(regionId)) {
+            return GrayStage.STAGE_3.name();
+        }
+
+        // 默认返回 FULL
+        return GrayStage.FULL.name();
     }
+
 } 

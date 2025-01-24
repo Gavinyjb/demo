@@ -18,6 +18,7 @@ import java.util.stream.Collectors;
 import com.example.exception.ConfigNotFoundException;
 import lombok.extern.slf4j.Slf4j;
 import java.util.Arrays;
+import com.example.enums.GrayStage;
 
 /**
  * API记录配置服务
@@ -224,4 +225,69 @@ public class ApiRecordConfigService implements BaseConfigService<ApiRecordConfig
             .map(ApiRecordConfigBO::fromDO)
             .collect(Collectors.toList());
     }
+
+//    /**
+//     * 根据标识符和灰度阶段查找生效的配置
+//     */
+//    public ApiRecordConfigBO findActiveConfigByIdentifierAndStage(String identifier, String stage) {
+//        // 1. 查找所有处于灰度和发布状态的配置
+//        List<ApiRecordConfigBO> activeConfigs = apiRecordConfigMapper.findByIdentifierAndStatus(
+//            identifier,
+//            Arrays.asList(ConfigStatus.GRAYING.name(), ConfigStatus.PUBLISHED.name())
+//        );
+//
+//        // 2. 校验配置数量
+//        if (activeConfigs.size() > 2) {
+//            throw new IllegalStateException(
+//                String.format("Found more than 2 active configs for identifier: %s", identifier)
+//            );
+//        }
+//
+//        // 3. 如果只有一个配置且是发布状态，直接返回
+//        if (activeConfigs.size() == 1 &&
+//            ConfigStatus.PUBLISHED.name().equals(activeConfigs.get(0).getConfigStatus())) {
+//            return activeConfigs.get(0);
+//        }
+//
+//        // 4. 如果有灰度配置和发布配置，根据stage判断返回哪个配置
+//        if (activeConfigs.size() == 2) {
+//            ApiRecordConfigBO grayConfig = activeConfigs.stream()
+//                .filter(c -> ConfigStatus.GRAY.name().equals(c.getConfigStatus()))
+//                .findFirst()
+//                .get();
+//            ApiRecordConfigBO publishedConfig = activeConfigs.stream()
+//                .filter(c -> ConfigStatus.PUBLISHED.name().equals(c.getConfigStatus()))
+//                .findFirst()
+//                .get();
+//
+//            // 阶段一直接返回灰度配置
+//            if (GrayStage.STAGE_1.name().equals(stage)) {
+//                return grayConfig;
+//            }
+//
+//            // 阶段二判断灰度配置是否是阶段二或阶段三
+//            if (GrayStage.STAGE_2.name().equals(stage)) {
+//                String grayStage = grayConfig.getStage();
+//                if (GrayStage.STAGE_2.name().equals(grayStage) ||
+//                    GrayStage.STAGE_3.name().equals(grayStage)) {
+//                    return grayConfig;
+//                }
+//                return publishedConfig;
+//            }
+//
+//            // 阶段三判断灰度配置是否是阶段三
+//            if (GrayStage.STAGE_3.name().equals(stage)) {
+//                if (GrayStage.STAGE_3.name().equals(grayConfig.getStage())) {
+//                    return grayConfig;
+//                }
+//                return publishedConfig;
+//            }
+//
+//            // 其他情况返回发布配置
+//            return publishedConfig;
+//        }
+//
+//        // 5. 其他情况返回null
+//        return null;
+//    }
 } 
