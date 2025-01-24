@@ -26,7 +26,6 @@ import java.time.LocalDateTime;
 import javax.validation.Valid;
 import javax.validation.constraints.NotBlank;
 import java.util.UUID;
-import java.util.Arrays;
 
 @Slf4j
 @RestController
@@ -214,7 +213,7 @@ public class ApiRecordConfigController {
         private String apiName;
         
         @Schema(description = "按地域查询")
-        private String region;
+        private String regionId;
         
         @Schema(description = "是否只查询已发布配置")
         private Boolean onlyPublished;
@@ -418,7 +417,7 @@ public class ApiRecordConfigController {
         // 3. 查询所有已发布配置
         if (Boolean.TRUE.equals(request.getOnlyPublished())
                 && request.getGatewayType() == null
-                && request.getRegion() == null) {
+                && request.getRegionId() == null) {
             return OpenApiResponse.success(
                     apiRecordConfigService.getAllPublished().stream()
                             .map(ApiRecordResponse::fromBO)
@@ -439,20 +438,20 @@ public class ApiRecordConfigController {
         }
 
         // 5. 查询指定地域生效的配置
-        if (request.getRegion() != null) {
+        if (request.getRegionId() != null) {
             // 5.1 查询指定API在指定地域的生效配置
             if (isApiIdentifierComplete(request) && Boolean.TRUE.equals(request.getActiveOnly())) {
                 String identifier = buildIdentifier(request);
                 ApiRecordConfigBO config = apiRecordConfigService.getActiveByIdentifierAndRegion(
                         identifier,
-                        request.getRegion()
+                        request.getRegionId()
                 );
                 return OpenApiResponse.success(Collections.singletonList(ApiRecordResponse.fromBO(config)), UUID.randomUUID().toString());
             }
 
             // 5.2 查询指定地域的所有生效配置
             return OpenApiResponse.success(
-                    apiRecordConfigService.getActiveByRegion(request.getRegion()).stream()
+                    apiRecordConfigService.getActiveByRegion(request.getRegionId()).stream()
                             .map(ApiRecordResponse::fromBO)
                             .collect(Collectors.toList()),
                     UUID.randomUUID().toString()
@@ -482,19 +481,19 @@ public class ApiRecordConfigController {
      */
     @PostMapping("/diff")
     @Operation(summary = "获取配置变更信息", description = "比较客户端版本与服务端版本的差异，返回需要更新的配置")
-    public ResponseEntity<ApiRecordDiffResponse> getConfigDiff(@RequestBody ConfigDiffRequest request) {
+    public OpenApiResponse<ApiRecordDiffResponse> getConfigDiff(@RequestBody ConfigDiffRequest request) {
         ConfigDiffResponse<ApiRecordConfigBO> boResponse = apiRecordConfigService.getConfigDiff(
             request.getVersionIds(),
-            request.getRegion()
+            request.getRegionId()
         );
         
-        return ResponseEntity.ok(ApiRecordDiffResponse.builder()
+        return OpenApiResponse.success(ApiRecordDiffResponse.builder()
             .updatedConfigs(boResponse.getUpdatedConfigs().stream()
                 .map(ApiRecordResponse::fromBO)
                 .collect(Collectors.toList()))
             .activeVersionIds(boResponse.getActiveVersionIds())
             .deprecatedVersionIds(boResponse.getDeprecatedVersionIds())
-            .build());
+            .build(), UUID.randomUUID().toString());
     }
 
     /**

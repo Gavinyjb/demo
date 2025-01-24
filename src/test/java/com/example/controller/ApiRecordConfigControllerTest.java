@@ -3,7 +3,6 @@ package com.example.controller;
 import com.example.dto.ConfigDiffRequest;
 import com.example.enums.ConfigStatus;
 import com.example.enums.GrayStage;
-import com.example.model.bo.ApiRecordConfigBO;
 import com.example.service.ApiRecordConfigService;
 import com.example.service.PublishService;
 import lombok.extern.slf4j.Slf4j;
@@ -40,7 +39,7 @@ class ApiRecordConfigControllerTest {
         createRequest.setApiName("test-api");
         createRequest.setBasicConfig("{}");
 
-        ApiRecordConfigController.ApiRecordResponse created = controller.create(createRequest).getBody();
+        ApiRecordConfigController.ApiRecordResponse created = controller.create(createRequest).getData();
         assertNotNull(created);
         assertEquals(ConfigStatus.DRAFT.name(), created.getConfigStatus());
 
@@ -65,7 +64,7 @@ class ApiRecordConfigControllerTest {
         createRequest.setApiName("test-api");
         createRequest.setBasicConfig("{}");
 
-        ApiRecordConfigController.ApiRecordResponse created = controller.create(createRequest).getBody();
+        ApiRecordConfigController.ApiRecordResponse created = controller.create(createRequest).getData();
         assertNotNull(created);
 
         // 2. 发布配置
@@ -80,7 +79,7 @@ class ApiRecordConfigControllerTest {
         updateRequest.setApiName("test-api");
         updateRequest.setBasicConfig("{\"updated\": true}");
 
-        ApiRecordConfigController.ApiRecordResponse updated = controller.update(updateRequest).getBody();
+        ApiRecordConfigController.ApiRecordResponse updated = controller.update(updateRequest).getData();
         assertNotNull(updated);
         publishService.publishByStage(updated.getVersionId(), "API_RECORD", GrayStage.FULL, "test-user");
 
@@ -108,7 +107,7 @@ class ApiRecordConfigControllerTest {
         createRequest.setApiName("test-api");
         createRequest.setBasicConfig("{}");
 
-        ApiRecordConfigController.ApiRecordResponse created = controller.create(createRequest).getBody();
+        ApiRecordConfigController.ApiRecordResponse created = controller.create(createRequest).getData();
         assertNotNull(created);
 
         // 2. 发布配置
@@ -133,13 +132,13 @@ class ApiRecordConfigControllerTest {
         createRequest.setApiName("test-api");
         createRequest.setBasicConfig("{}");
 
-        ApiRecordConfigController.ApiRecordResponse config1 = controller.create(createRequest).getBody();
+        ApiRecordConfigController.ApiRecordResponse config1 = controller.create(createRequest).getData();
         assertNotNull(config1);
         publishService.publishByStage(config1.getVersionId(), "API_RECORD", GrayStage.FULL, "test-user");
 
         // 2. 创建并发布第二个配置（不同API）
         createRequest.setApiName("test-api-2");
-        ApiRecordConfigController.ApiRecordResponse config2 = controller.create(createRequest).getBody();
+        ApiRecordConfigController.ApiRecordResponse config2 = controller.create(createRequest).getData();
         assertNotNull(config2);
         publishService.publishByStage(config2.getVersionId(), "API_RECORD", GrayStage.FULL, "test-user");
 
@@ -152,16 +151,16 @@ class ApiRecordConfigControllerTest {
         updateRequest.setApiName("test-api");
         updateRequest.setBasicConfig("{\"updated\": true}");
 
-        ApiRecordConfigController.ApiRecordResponse config3 = controller.update(updateRequest).getBody();
+        ApiRecordConfigController.ApiRecordResponse config3 = controller.update(updateRequest).getData();
         assertNotNull(config3);
         publishService.publishByStage(config3.getVersionId(), "API_RECORD", GrayStage.FULL, "test-user");
 
         // 4. 测试配置差异对比 - 客户端没有任何配置
         ConfigDiffRequest diffRequest = new ConfigDiffRequest();
         diffRequest.setVersionIds(Collections.emptyList());
-        diffRequest.setRegion("ap-southeast-1");
+        diffRequest.setRegionId("ap-southeast-1");
 
-        ApiRecordConfigController.ApiRecordDiffResponse diffResponse1 = controller.getConfigDiff(diffRequest).getBody();
+        ApiRecordConfigController.ApiRecordDiffResponse diffResponse1 = controller.getConfigDiff(diffRequest).getData();
         assertNotNull(diffResponse1);
         assertEquals(2, diffResponse1.getUpdatedConfigs().size());  // 应该返回两个活跃配置
         assertEquals(2, diffResponse1.getActiveVersionIds().size());
@@ -169,7 +168,7 @@ class ApiRecordConfigControllerTest {
 
         // 5. 测试配置差异对比 - 客户端持有旧版本
         diffRequest.setVersionIds(Collections.singletonList(config1.getVersionId()));
-        ApiRecordConfigController.ApiRecordDiffResponse diffResponse2 = controller.getConfigDiff(diffRequest).getBody();
+        ApiRecordConfigController.ApiRecordDiffResponse diffResponse2 = controller.getConfigDiff(diffRequest).getData();
         assertNotNull(diffResponse2);
         assertEquals(2, diffResponse2.getUpdatedConfigs().size());  // 应该返回新版本和另一个API的配置
         assertEquals(2, diffResponse2.getActiveVersionIds().size());
@@ -178,7 +177,7 @@ class ApiRecordConfigControllerTest {
 
         // 6. 测试配置差异对比 - 客户端持有最新版本
         diffRequest.setVersionIds(Arrays.asList(config2.getVersionId(), config3.getVersionId()));
-        ApiRecordConfigController.ApiRecordDiffResponse diffResponse3 = controller.getConfigDiff(diffRequest).getBody();
+        ApiRecordConfigController.ApiRecordDiffResponse diffResponse3 = controller.getConfigDiff(diffRequest).getData();
         assertNotNull(diffResponse3);
         assertTrue(diffResponse3.getUpdatedConfigs().isEmpty());  // 不应该有需要更新的配置
         assertEquals(2, diffResponse3.getActiveVersionIds().size());
@@ -186,7 +185,7 @@ class ApiRecordConfigControllerTest {
 
         // 7. 测试配置差异对比 - 客户端持有不存在的版本
         diffRequest.setVersionIds(Collections.singletonList("non-existent-version"));
-        ApiRecordConfigController.ApiRecordDiffResponse diffResponse4 = controller.getConfigDiff(diffRequest).getBody();
+        ApiRecordConfigController.ApiRecordDiffResponse diffResponse4 = controller.getConfigDiff(diffRequest).getData();
         assertNotNull(diffResponse4);
         assertEquals(2, diffResponse4.getUpdatedConfigs().size());  // 应该返回所有活跃配置
         assertEquals(2, diffResponse4.getActiveVersionIds().size());

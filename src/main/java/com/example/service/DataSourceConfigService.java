@@ -129,7 +129,7 @@ public class DataSourceConfigService implements BaseConfigService<DataSourceConf
      * 获取配置变更信息
      */
     public ConfigDiffResponse<DataSourceConfigBO> getConfigDiff(ConfigDiffRequest request) {
-        String stage = regionProvider.getStageByRegion(request.getRegion());
+        String stage = regionProvider.getStageByRegion(request.getRegionId());
         
         // 获取当前所有生效的配置
         List<DataSourceConfig> currentConfigs = dataSourceConfigMapper.findByStage(stage);

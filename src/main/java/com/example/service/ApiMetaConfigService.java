@@ -127,7 +127,7 @@ public class ApiMetaConfigService implements BaseConfigService<ApiMetaConfigBO> 
     }
 
     public ConfigDiffResponse<ApiMetaConfigBO> getConfigDiff(ConfigDiffRequest request) {
-        String stage = regionProvider.getStageByRegion(request.getRegion());
+        String stage = regionProvider.getStageByRegion(request.getRegionId());
         
         // 获取当前所有生效的配置
         List<ApiMetaConfig> currentConfigs = apiMetaConfigMapper.findByStage(stage);

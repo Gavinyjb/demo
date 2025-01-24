@@ -14,5 +14,5 @@ public class ConfigDiffRequest {
     /**
      * 查询的地域
      */
-    private String region;
+    private String regionId;
 } 
